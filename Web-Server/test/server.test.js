@@ -122,8 +122,8 @@ async function startApp(t, overrides = {}) {
       req.end();
     });
 
-  const issueKeys = async (count = 1) => {
-    const res = await call("POST", "/api/admin/licenses/generate", { count }, { authorization: `Bearer ${ADMIN_TOKEN}` });
+  const issueKeys = async (count = 1, tier = "standard") => {
+    const res = await call("POST", "/api/admin/licenses/generate", { count, tier }, { authorization: `Bearer ${ADMIN_TOKEN}` });
     assert.equal(res.status, 200);
     return res.json.keys;
   };
@@ -542,4 +542,72 @@ test("CLI refuses a mismatched secret and a corrupt store without writing", { sk
   assert.equal(corrupt.status, 2);
   assert.equal(fs.readFileSync(licensesFile, "utf8"), "{ broken");
   assert.equal(fs.existsSync(path.join(dataDir, ".store.lock")), false);
+});
+
+test("bot endpoints respond to FAQ, quiz, reminders, and webhooks", async (t) => {
+  const ctx = await startApp(t);
+
+  // 1. FAQ endpoint
+  const faqRes = await ctx.call("GET", "/api/bot/faq");
+  assert.equal(faqRes.status, 200);
+  assert.equal(faqRes.json.ok, true);
+  assert.ok(Array.isArray(faqRes.json.faqs));
+  assert.ok(faqRes.json.faqs.length >= 5);
+
+  // 2. Daily reminder endpoint
+  const remRes = await ctx.call("GET", "/api/bot/remind");
+  assert.equal(remRes.status, 200);
+  assert.ok(remRes.json.reminder.title);
+  assert.match(remRes.json.reminder.message, /NHẮC LỊCH HỌC/);
+
+  // 3. Quiz endpoint
+  const quizRes = await ctx.call("GET", "/api/bot/quiz");
+  assert.equal(quizRes.status, 200);
+  assert.ok(quizRes.json.quiz.q);
+  assert.equal(quizRes.json.quiz.options.length, 4);
+  assert.ok(typeof quizRes.json.quiz.answer === "number");
+
+  // 4. Telegram Webhook: /start
+  const tgStart = await ctx.call("POST", "/api/bot/telegram", {
+    message: { text: "/start" }
+  });
+  assert.equal(tgStart.status, 200);
+  assert.match(tgStart.json.text, /Chào bạn! Tôi là Bot Trợ Giảng/);
+
+  // 5. Telegram Webhook: FAQ query
+  const tgFaq = await ctx.call("POST", "/api/bot/telegram", {
+    message: { text: "giá gói pro là bao nhiêu" }
+  });
+  assert.equal(tgFaq.status, 200);
+  assert.match(tgFaq.json.text, /GÓI PRO AI LAB/);
+
+  // 6. Telegram Webhook: /quiz
+  const tgQuiz = await ctx.call("POST", "/api/bot/telegram", {
+    message: { text: "/quiz" }
+  });
+  assert.equal(tgQuiz.status, 200);
+  assert.match(tgQuiz.json.text, /MINI-QUIZ 1 PHÚT/);
+
+  // 7. Zalo Webhook
+  const zaloRes = await ctx.call("POST", "/api/bot/zalo", {
+    event_name: "user_send_text_message",
+    message: { text: "học offline được không" }
+  });
+  assert.equal(zaloRes.status, 200);
+  assert.equal(zaloRes.json.error, 0);
+  assert.match(zaloRes.json.reply, /Offline/);
+
+  // 8. License check endpoint
+  const [proKey] = await ctx.issueKeys(1, "pro");
+  await ctx.register("botuser@example.test", proKey);
+
+  const checkKey = await ctx.call("POST", "/api/bot/check", { query: proKey });
+  assert.equal(checkKey.status, 200);
+  assert.equal(checkKey.json.found, true);
+  assert.equal(checkKey.json.tier, "pro");
+
+  const checkEmail = await ctx.call("POST", "/api/bot/check", { query: "botuser@example.test" });
+  assert.equal(checkEmail.status, 200);
+  assert.equal(checkEmail.json.found, true);
+  assert.equal(checkEmail.json.tier, "pro");
 });

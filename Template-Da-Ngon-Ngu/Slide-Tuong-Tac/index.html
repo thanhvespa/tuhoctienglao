@@ -122,6 +122,41 @@
     </div>
   </div>
 
+  <!-- Pro Upgrade Modal (AI Pronunciation Lab) -->
+  <div class="modal-backdrop hidden" id="proModal" role="dialog" aria-modal="true" aria-labelledby="proModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="proModalTitle">👑 Nâng Cấp Gói PRO AI Lab</h3>
+        <button class="btn btn-sm" id="btnCloseProModal" type="button" aria-label="Đóng">✕</button>
+      </div>
+      <div class="pro-modal-body">
+        <div class="pro-banner">
+          <div class="badge-tier badge-pro" style="font-size:0.85rem;padding:4px 10px;">👑 PRO VIP AI LAB</div>
+          <h4 style="margin:8px 0 4px;font-size:1.05rem;">Phòng Lab Chấm Điểm &amp; So Sánh Phát Âm AI</h4>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">Phân tích % thanh điệu tiếng Lào, vẽ biểu đồ sóng âm Waveform song song và luyện phát âm tới khi ưng ý.</p>
+        </div>
+        <div class="pro-features-list" style="margin:14px 0;font-size:0.84rem;display:flex;flex-direction:column;gap:8px;">
+          <div>🎯 <strong>Chấm điểm % tức thì</strong>: Đo lường thanh điệu (Tone), nhịp ngắt và độ rõ âm.</div>
+          <div>📊 <strong>Waveform Visualizer</strong>: So sánh sóng âm trực quan giọng bạn vs người bản xứ.</div>
+          <div>🔄 <strong>Luyện tập không giới hạn</strong>: Nút phát âm lại liên tục để cải thiện điểm số.</div>
+          <div>🤖 <strong>Bot Telegram &amp; Zalo 1-1</strong>: Nhắc lịch học 15 phút &amp; giải đáp FAQ 24/7.</div>
+        </div>
+        <div class="pro-actions">
+          <form id="formProUpgrade" class="auth-form">
+            <label>Nhập mã kích hoạt Gói Pro của bạn:
+              <input type="text" id="proUpgradeKey" required placeholder="VD: LAO-PRO-XXXX-XXXX" autocomplete="off" />
+            </label>
+            <div class="auth-msg hidden" id="proUpgradeMsg"></div>
+            <button class="btn btn-gold" type="submit" style="width:100%;margin-top:6px;padding:10px;">✨ Kích Hoạt &amp; Mở Khóa Gói Pro</button>
+          </form>
+          <div style="text-align:center;margin-top:12px;font-size:0.82rem;color:var(--text-muted);">
+            Chưa có mã Pro? <a href="../#bang-gia" target="_blank" style="color:var(--primary);font-weight:700;">Xem bảng giá ưu đãi</a> hoặc <a href="https://zalo.me/tuhoctienglao" target="_blank" style="color:var(--primary);font-weight:700;">Nhắn Zalo hỗ trợ</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="curriculum_data.js"></script>
   <script src="app.js"></script>
 </body>

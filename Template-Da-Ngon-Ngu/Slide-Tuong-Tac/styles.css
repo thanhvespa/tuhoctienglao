@@ -455,6 +455,142 @@ html, body {
   color: var(--danger);
 }
 
+/* AI Pronunciation Lab & Waveform */
+.rec-ai-panel {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.rec-ai-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rec-ai-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rec-ai-badge {
+  font-size: 1.25rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rec-ai-badge.score-excellent {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.rec-ai-badge.score-good {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  border: 1px solid #d97706;
+}
+
+.rec-ai-badge.score-practice {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.rec-ai-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metric-card {
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.metric-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-top: 2px;
+}
+
+.waveform-wrap {
+  position: relative;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.waveform-canvas {
+  width: 100%;
+  height: 90px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  display: block;
+}
+
+.waveform-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.legend-ref {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.legend-user {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.rec-ai-verdict {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.rec-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.pro-banner {
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.05));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
 /* Slide Presentation Mode */
 .slide-stage {
   background: var(--surface);
@@ -891,6 +1027,19 @@ html, body {
   background: var(--primary-soft);
   color: var(--primary);
   border: 1px solid var(--primary);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff !important;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35);
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-1px);
 }
 
 .account-box .acc-actions {

@@ -28,6 +28,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { pipeline } = require("node:stream");
+const botService = require("./bot");
 
 const COOKIE_NAME = "course_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -802,11 +803,59 @@ function createCourseApp(options = {}) {
 
       const method = (req.method || "GET").toUpperCase();
 
-      // Enforce CSRF Origin check on mutating API calls (unless bearer-auth admin route)
+      // Enforce CSRF Origin check on mutating API calls (unless bearer-auth admin route or bot webhooks)
       if (pathname.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(method)) {
-        if (!pathname.startsWith("/api/admin/") && !checkCsrfOrigin(req)) {
+        if (!pathname.startsWith("/api/admin/") && !pathname.startsWith("/api/bot/") && !checkCsrfOrigin(req)) {
           return sendJson(res, 403, { error: "Yêu cầu bị từ chối bởi kiểm tra Origin (CSRF)." });
         }
+      }
+
+      const getBotStore = () => {
+        try {
+          return {
+            licenses: readDbStrict(licensesFile, "licenses").licenses || [],
+            users: readDbStrict(usersFile, "users").users || [],
+          };
+        } catch (_) {
+          return { licenses: [], users: [] };
+        }
+      };
+
+      // ---- BOT ROUTES (TELEGRAM & ZALO) ----
+      if (pathname === "/api/bot/faq" && method === "GET") {
+        return sendJson(res, 200, { ok: true, faqs: botService.FAQ_DATABASE });
+      }
+
+      if (pathname === "/api/bot/remind" && method === "GET") {
+        return sendJson(res, 200, { ok: true, reminder: botService.getDailyReminder() });
+      }
+
+      if (pathname === "/api/bot/quiz" && method === "GET") {
+        if (!cachedCurriculum) refreshCurriculumCache();
+        return sendJson(res, 200, { ok: true, quiz: botService.generateMicroQuiz(cachedCurriculum) });
+      }
+
+      if (pathname === "/api/bot/check" && method === "POST") {
+        const body = await readJsonBody(req);
+        const query = String(body.query || body.license_key || body.email || "").trim();
+        const store = getBotStore();
+        return sendJson(res, 200, botService.checkLicenseInfo(query, store));
+      }
+
+      if (pathname === "/api/bot/telegram" && method === "POST") {
+        const body = await readJsonBody(req);
+        const store = getBotStore();
+        if (!cachedCurriculum) refreshCurriculumCache();
+        const result = botService.handleTelegramWebhook(body, store, cachedCurriculum);
+        return sendJson(res, 200, result);
+      }
+
+      if (pathname === "/api/bot/zalo" && method === "POST") {
+        const body = await readJsonBody(req);
+        const store = getBotStore();
+        if (!cachedCurriculum) refreshCurriculumCache();
+        const result = botService.handleZaloWebhook(body, store, cachedCurriculum);
+        return sendJson(res, 200, result);
       }
 
       // ---- AUTH & COURSE API ROUTES ----
