@@ -869,6 +869,30 @@ html, body {
   margin-bottom: 4px;
 }
 
+.badge-tier {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.badge-tier.badge-pro {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.35);
+}
+
+.badge-tier.badge-std {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
 .account-box .acc-actions {
   display: flex;
   flex-wrap: wrap;

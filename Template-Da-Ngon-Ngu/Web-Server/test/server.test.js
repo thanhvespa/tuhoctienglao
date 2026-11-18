@@ -177,6 +177,7 @@ test("register, unlock curriculum, login, logout", async (t) => {
   const { res, cookie } = await ctx.register("flow@example.test", key);
   assert.equal(res.status, 200);
   assert.equal(res.json.unlocked, true);
+  assert.equal(res.json.tier, "standard");
   assert.match(res.headers["set-cookie"][0], /HttpOnly/);
   assert.match(res.headers["set-cookie"][0], /SameSite=Lax/);
 
@@ -185,9 +186,15 @@ test("register, unlock curriculum, login, logout", async (t) => {
   assert.equal(full.status, 200);
   assert.equal(full.json.chapters.length, 2);
 
+  const me = await ctx.call("GET", "/api/auth/me", null, { cookie });
+  assert.equal(me.status, 200);
+  assert.equal(me.json.tier, "standard");
+  assert.equal(me.json.user.tier, "standard");
+
   const login = await ctx.call("POST", "/api/auth/login", { email: "flow@example.test", password: PASSWORD });
   assert.equal(login.status, 200);
   assert.equal(login.json.unlocked, true);
+  assert.equal(login.json.tier, "standard");
 
   assert.equal((await ctx.call("POST", "/api/auth/logout", null, { cookie })).status, 200);
   assert.equal((await ctx.call("GET", "/api/curriculum", null, { cookie })).status, 401);
@@ -204,6 +211,62 @@ test("register requires consent under Decree 13/2023/ND-CP", async (t) => {
   );
   assert.equal(res.status, 400);
   assert.match(res.json.error, /Nghị định 13\/2023\/NĐ-CP/);
+});
+
+test("pro license activates pro tier and reports in /api/auth/me", async (t) => {
+  const ctx = await startApp(t);
+  const genRes = await ctx.call(
+    "POST",
+    "/api/admin/licenses/generate",
+    { count: 1, tier: "pro" },
+    { authorization: `Bearer ${ADMIN_TOKEN}` }
+  );
+  assert.equal(genRes.status, 200);
+  assert.equal(genRes.json.tier, "pro");
+  const proKey = genRes.json.keys[0];
+  assert.match(proKey, /^LAO-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+
+  const { res, cookie } = await ctx.register("vip@example.test", proKey);
+  assert.equal(res.status, 200);
+  assert.equal(res.json.tier, "pro");
+  assert.equal(res.json.user.tier, "pro");
+
+  const me = await ctx.call("GET", "/api/auth/me", null, { cookie });
+  assert.equal(me.status, 200);
+  assert.equal(me.json.tier, "pro");
+  assert.equal(me.json.user.tier, "pro");
+});
+
+test("user can upgrade from standard to pro via /api/auth/activate", async (t) => {
+  const ctx = await startApp(t);
+  const [stdKey] = await ctx.issueKeys(1);
+  assert.match(stdKey, /^LAO-STD-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+
+  const { res, cookie } = await ctx.register("upgrade@example.test", stdKey);
+  assert.equal(res.status, 200);
+  assert.equal(res.json.tier, "standard");
+
+  const genPro = await ctx.call(
+    "POST",
+    "/api/admin/licenses/generate",
+    { count: 1, tier: "pro" },
+    { authorization: `Bearer ${ADMIN_TOKEN}` }
+  );
+  const proKey = genPro.json.keys[0];
+
+  const actRes = await ctx.call(
+    "POST",
+    "/api/auth/activate",
+    { license_key: proKey },
+    { cookie }
+  );
+  assert.equal(actRes.status, 200);
+  assert.equal(actRes.json.tier, "pro");
+  assert.equal(actRes.json.user.tier, "pro");
+
+  const me = await ctx.call("GET", "/api/auth/me", null, { cookie });
+  assert.equal(me.json.tier, "pro");
+  assert.equal(me.json.user.tier, "pro");
 });
 
 test("a license key cannot be bound to a second account", async (t) => {

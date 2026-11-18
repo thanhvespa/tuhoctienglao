@@ -148,7 +148,15 @@ def save_json_secure(path: Path, payload: dict[str, Any]) -> None:
 
 def cmd_generate(args: argparse.Namespace) -> int:
     course_id = args.course or CFG["course_id"]
-    prefix = re.sub(r"[^A-Z0-9]", "", (args.prefix or CFG["target_lang"]["code"]).upper()) or "KEY"
+    tier = getattr(args, "tier", "standard") or "standard"
+    if args.prefix and "PRO" in args.prefix.upper():
+        tier = "pro"
+    tier_tag = "PRO" if tier == "pro" else "STD"
+    target_code = re.sub(r"[^A-Z0-9]", "", CFG["target_lang"]["code"].upper()) or "LAO"
+    if target_code == "LO":
+        target_code = "LAO"
+    default_prefix = f"{target_code}-{tier_tag}"
+    prefix = re.sub(r"[^A-Z0-9-]", "", args.prefix.upper()) if args.prefix else default_prefix
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     generated: list[str] = []
@@ -157,13 +165,14 @@ def cmd_generate(args: argparse.Namespace) -> int:
         secret = get_license_secret(db, allow_create=True)
         db["secret_fp"] = license_secret_fingerprint(secret)
         for _ in range(args.count):
-            code = "".join(ALPHABET[secrets.randbelow(len(ALPHABET))] for _ in range(12))
-            raw_key = f"{prefix}-{code[:4]}-{code[4:8]}-{code[8:12]}"
+            code = "".join(ALPHABET[secrets.randbelow(len(ALPHABET))] for _ in range(8))
+            raw_key = f"{prefix}-{code[:4]}-{code[4:8]}"
             db["licenses"].append(
                 {
                     "id": "lic_" + secrets.token_hex(6),
                     "key_hash": hash_license_key(raw_key, secret),
-                    "hint": f"{prefix}-****-{code[8:12]}",
+                    "hint": f"{prefix}-****-{code[4:8]}",
+                    "tier": tier,
                     "course_id": course_id,
                     "note": args.note or "",
                     "revoked": False,
@@ -238,8 +247,9 @@ def main() -> int:
 
     p_gen = sub.add_parser("generate", help="Sinh lô mã kích hoạt mới")
     p_gen.add_argument("--count", type=int, default=5, help="Số lượng mã (mặc định: 5)")
+    p_gen.add_argument("--tier", choices=["standard", "pro"], default="standard", help="Hạng gói bản quyền: standard (mặc định) hoặc pro")
     p_gen.add_argument("--course", default=None, help="Course ID (hoặc '*' cho mọi khóa)")
-    p_gen.add_argument("--prefix", default=None, help="Tiền tố mã (vd: LAO, PRO)")
+    p_gen.add_argument("--prefix", default=None, help="Tiền tố mã (vd: LAO-STD, LAO-PRO)")
     p_gen.add_argument("--note", default="", help="Ghi chú đợt phát hành")
     p_gen.add_argument("--save-batch", default=None, help="Xuất danh sách mã gốc ra file 0600 riêng")
 

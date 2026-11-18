@@ -707,16 +707,38 @@
     }
 
     /* Pricing Section */
-    .pricing-card {
-      max-width: 640px;
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 32px;
+      max-width: 1040px;
       margin: 0 auto;
+      align-items: stretch;
+    }
+
+    .pricing-card {
       background: #ffffff;
-      border: 2px solid var(--primary);
+      border: 2px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 40px;
-      box-shadow: var(--shadow-lg);
+      padding: 38px 30px;
+      box-shadow: var(--shadow-sm);
       position: relative;
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .pricing-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .pricing-card-pro {
+      border: 2.5px solid #d97706;
+      background: linear-gradient(180deg, #fffdf8 0%, #ffffff 30%);
+      box-shadow: 0 16px 36px -6px rgba(217, 119, 6, 0.18), 0 0 0 1px rgba(217, 119, 6, 0.15);
     }
 
     .pricing-badge-popular {
@@ -724,19 +746,59 @@
       top: -15px;
       left: 50%;
       transform: translateX(-50%);
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      background: linear-gradient(135deg, #146c53, #0d4a39);
       color: #ffffff;
-      font-size: 0.84rem;
+      font-size: 0.8rem;
       font-weight: 800;
       padding: 6px 18px;
       border-radius: 30px;
-      box-shadow: 0 4px 10px rgba(217, 119, 6, 0.3);
+      box-shadow: 0 4px 10px rgba(20, 108, 83, 0.3);
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .pricing-badge-pro {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 6px 20px;
+      border-radius: 30px;
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .price-tier-tag {
+      display: inline-block;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-top: 6px;
+    }
+
+    .tier-tag-std {
+      background: rgba(20, 108, 83, 0.08);
+      color: #146c53;
+      border: 1px solid rgba(20, 108, 83, 0.25);
+    }
+
+    .tier-tag-pro {
+      background: rgba(245, 158, 11, 0.12);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.35);
     }
 
     .price-value-box {
-      margin: 24px 0 28px;
+      margin: 20px 0 24px;
     }
 
     .price-original {
@@ -747,13 +809,13 @@
     }
 
     .price-current {
-      font-size: 3rem;
+      font-size: 2.75rem;
       font-weight: 800;
       color: var(--primary);
     }
 
     .price-note {
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       color: var(--text-muted);
       margin-top: 4px;
     }
@@ -761,7 +823,7 @@
     .pricing-benefits {
       text-align: left;
       list-style: none;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
       display: grid;
       gap: 12px;
     }
@@ -770,13 +832,14 @@
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      font-size: 0.98rem;
+      font-size: 0.94rem;
       color: var(--text-main);
+      line-height: 1.45;
     }
 
     .pricing-benefits li svg {
       flex-shrink: 0;
-      margin-top: 3px;
+      margin-top: 2px;
       color: #10b981;
     }
 
@@ -1051,6 +1114,10 @@
       }
       .footer-content {
         grid-template-columns: 1fr;
+      }
+      .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 520px;
       }
     }
 
@@ -1607,70 +1674,127 @@
     <div class="container">
       <div class="section-header">
         <span class="section-tag">Đăng Ký Khóa Học</span>
-        <h2 class="section-title">Sở Hữu Trọn Đời – Mở Khóa Toàn Diện</h2>
+        <h2 class="section-title">Chọn Gói Bản Quyền – Sở Hữu Trọn Đời</h2>
         <p class="section-desc">
-          Học thử Chương 1 miễn phí trước khi quyết định. Mở khóa một lần duy nhất, không thu phí duy trì hàng tháng.
+          Học thử Chương 1 miễn phí trước khi quyết định. Kích hoạt một lần duy nhất bằng License Key cá nhân, không thu phí duy trì hàng tháng.
         </p>
       </div>
 
-      <div class="pricing-card">
-        <span class="pricing-badge-popular">Ưu Đãi Ra Mắt Khóa Học</span>
-        
-        <h3 style="font-size: 1.5rem; font-weight: 800; color: #12211b; margin-top: 10px;">
-          Gói Bản Quyền Trọn Đời (Full Access)
-        </h3>
-        <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 4px;">
-          Kích hoạt trực tiếp trên ứng dụng PWA
-        </p>
+      <div class="pricing-grid">
+        <!-- TIER 1: STANDARD -->
+        <div class="pricing-card">
+          <span class="pricing-badge-popular">Gói Tiêu Chuẩn</span>
+          <div>
+            <h3 style="font-size: 1.45rem; font-weight: 800; color: #12211b; margin-top: 10px;">
+              Gói Standard
+            </h3>
+            <div class="price-tier-tag tier-tag-std">Mã kích hoạt: LAO-STD-XXXX-XXXX</div>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 6px;">
+              Trọn bộ 8 chương giáo trình &amp; luyện nghe nói phản xạ 3s
+            </p>
 
-        <div class="price-value-box">
-          <span class="price-original">690.000đ</span>
-          <span class="price-current">299.000đ</span>
-          <div class="price-note">Thanh toán 1 lần • Sở hữu vĩnh viễn</div>
+            <div class="price-value-box">
+              <span class="price-original">590.000đ</span>
+              <span class="price-current">299.000đ</span>
+              <div class="price-note">Thanh toán 1 lần • Sở hữu vĩnh viễn</div>
+            </div>
+
+            <ul class="pricing-benefits">
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Mở khóa toàn bộ <strong>8 chương thực chiến &amp; 27 bài học</strong></span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Trọn bộ <strong>840 file audio</strong> chuẩn Viêng Chăn tải về học Offline</span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Flashcard phản xạ 3s, Shadowing đối thoại &amp; Từ điển sinh tồn</span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Tính năng <strong>tự ghi âm nghe lại giọng mình</strong> (Self-listen)</span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Đăng nhập đồng thời trên <strong>tối đa 3 thiết bị</strong> (Điện thoại, Tablet, PC)</span>
+              </li>
+              <li style="color: #9ca3af;">
+                <span style="font-size: 1.1rem; line-height: 1; margin-right: 2px;">✕</span>
+                <span style="text-decoration: line-through;">Không gồm AI phân tích sóng âm &amp; chấm điểm % thanh điệu</span>
+              </li>
+            </ul>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px;">
+            <a href="./Slide-Tuong-Tac/" class="btn btn-outline" style="width: 100%;">
+              👉 Học Thử Miễn Phí (Chương 1)
+            </a>
+            <a href="https://zalo.me/tuhoctienglao" target="_blank" rel="noopener" class="btn btn-primary" style="width: 100%;">
+              🎟️ Mua Gói Standard (299.000đ)
+            </a>
+          </div>
         </div>
 
-        <ul class="pricing-benefits">
-          <li>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-            </svg>
-            <span>Mở khóa toàn bộ <strong>8 chương thực chiến &amp; 27 bài học</strong></span>
-          </li>
-          <li>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-            </svg>
-            <span>Trọn bộ <strong>838 file audio</strong> giọng chuẩn Viêng Chăn tải về máy học Offline</span>
-          </li>
-          <li>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-            </svg>
-            <span>Đăng nhập đồng thời trên <strong>tối đa 3 thiết bị</strong> (Điện thoại, Tablet, Laptop)</span>
-          </li>
-          <li>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-            </svg>
-            <span>Tặng kèm <strong>Ebook PDF/EPUB &amp; Trọn bộ Audio Podcast</strong> luyện nghe chủ động</span>
-          </li>
-          <li>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-            </svg>
-            <span>Hỗ trợ kỹ thuật &amp; giải đáp thắc mắc 1-1 qua <strong>Bot Telegram &amp; Zalo</strong></span>
-          </li>
-        </ul>
+        <!-- TIER 2: PRO AI LAB -->
+        <div class="pricing-card pricing-card-pro">
+          <span class="pricing-badge-pro">⭐ Khuyên Dùng • AI Lab</span>
+          <div>
+            <h3 style="font-size: 1.45rem; font-weight: 800; color: #92400e; margin-top: 10px;">
+              Gói Pro (AI Pronunciation Lab)
+            </h3>
+            <div class="price-tier-tag tier-tag-pro">Mã kích hoạt: LAO-PRO-XXXX-XXXX</div>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 6px;">
+              Toàn quyền Standard + Phòng Luyện Nói AI chấm điểm chuẩn xác
+            </p>
 
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <a href="./Slide-Tuong-Tac/" class="btn btn-primary btn-lg" style="width: 100%;">
-            👉 Vào Học Thử Miễn Phí Ngay
-          </a>
-          <a href="#ho-tro" class="btn btn-gold btn-lg" style="width: 100%;">
-            🔑 Mua Mã Kích Hoạt Qua Zalo / Telegram
-          </a>
+            <div class="price-value-box">
+              <span class="price-original">990.000đ</span>
+              <span class="price-current" style="color: #b45309;">499.000đ</span>
+              <div class="price-note">Ưu đãi ra mắt • Sở hữu vĩnh viễn trọn đời</div>
+            </div>
+
+            <ul class="pricing-benefits">
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="#d97706"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span><strong>Bao gồm toàn bộ quyền lợi của gói Standard</strong></span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="#d97706"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>🎙️ <strong>Phòng Luyện Phát Âm AI:</strong> So sánh sóng âm trực quan với người bản xứ</span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="#d97706"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>🎯 <strong>Chấm điểm % độ chính xác</strong> từng từ vựng &amp; câu hội thoại thực tế</span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="#d97706"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>🔄 <strong>Nút "Thu lại không giới hạn":</strong> Tự luyện tập lặp lại đến khi đạt điểm ưng ý</span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="#d97706"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>🤖 <strong>Trợ lý Bot Telegram &amp; Zalo 1-1:</strong> Nhắc học thông minh &amp; Mini-Quiz phản xạ</span>
+              </li>
+              <li>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="#d97706"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>👑 <strong>Huy hiệu PRO VIP</strong> &amp; Hỗ trợ giải đáp phát âm ưu tiên</span>
+              </li>
+            </ul>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px;">
+            <a href="https://zalo.me/tuhoctienglao" target="_blank" rel="noopener" class="btn btn-gold btn-lg" style="width: 100%; box-shadow: 0 4px 14px rgba(217,119,6,0.35);">
+              🚀 Mua Gói PRO AI Lab (499.000đ)
+            </a>
+            <a href="https://t.me/tuhoctienglao_bot" target="_blank" rel="noopener" class="btn btn-tele btn-sm" style="width: 100%;">
+              Nhận Mã Kích Hoạt Qua Bot Telegram
+            </a>
+          </div>
         </div>
       </div>
+    </div>
+  </section>
     </div>
   </section>
 

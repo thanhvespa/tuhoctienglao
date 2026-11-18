@@ -67,6 +67,15 @@ function normalizeLicenseKey(raw) {
     .replace(/[^A-Z0-9]/g, "");
 }
 
+function getLicenseTier(lic) {
+  if (!lic) return null;
+  if (lic.tier === "pro" || lic.tier === "standard") return lic.tier;
+  if (typeof lic.hint === "string" && (lic.hint.includes("-PRO-") || lic.hint.startsWith("PRO-") || lic.hint.includes("PRO"))) {
+    return "pro";
+  }
+  return "standard";
+}
+
 function loadOrCreateServerSecret(dataDir) {
   const envSecret = process.env.SESSION_SECRET || "";
   if (envSecret) {
@@ -649,17 +658,21 @@ function createCourseApp(options = {}) {
 
     const courseId = getCourseId();
     const licensesDb = readDbStrict(licensesFile, "licenses");
-    const hasActiveLicense = licensesDb.licenses.some(
+    const activeLicenses = licensesDb.licenses.filter(
       (lic) =>
         !lic.revoked &&
         lic.bound_user_id === user.id &&
         (lic.course_id === courseId || lic.course_id === "*")
     );
+    const hasActiveLicense = activeLicenses.length > 0;
+    const isPro = activeLicenses.some((l) => getLicenseTier(l) === "pro") || user.tier === "pro";
+    const tier = hasActiveLicense ? (isPro ? "pro" : "standard") : null;
 
     return {
       user,
       jti: sess.jti,
       unlocked: hasActiveLicense,
+      tier,
       courseId,
     };
   };
@@ -769,6 +782,7 @@ function createCourseApp(options = {}) {
     email: ctx.user.email,
     display_name: ctx.user.display_name || ctx.user.email.split("@")[0],
     unlocked: ctx.unlocked,
+    tier: ctx.tier || (ctx.unlocked ? (ctx.user && ctx.user.tier) || "standard" : null),
     active_devices: (ctx.user.sessions || []).filter((s) => !s.expires_at || s.expires_at > Date.now()).length,
     max_devices: getMaxDevices(),
   });
@@ -802,12 +816,14 @@ function createCourseApp(options = {}) {
           return sendJson(res, 200, {
             authenticated: false,
             unlocked: false,
+            tier: null,
             course_id: getCourseId(),
           });
         }
         return sendJson(res, 200, {
           authenticated: true,
           unlocked: ctx.unlocked,
+          tier: ctx.tier,
           course_id: ctx.courseId,
           user: publicUserDto(ctx),
         });
@@ -888,6 +904,7 @@ function createCourseApp(options = {}) {
             return { status: 403, payload: { error: "Mã kích hoạt này đã được gắn cho tài khoản khác." } };
           }
 
+          const licTier = getLicenseTier(lic);
           const now = Date.now();
           if (!user) {
             user = {
@@ -898,6 +915,7 @@ function createCourseApp(options = {}) {
               created_at: new Date(now).toISOString(),
               consent_at: new Date(now).toISOString(),
               consent_version: "1.0",
+              tier: licTier,
               sessions: [],
             };
             usersDb.users.push(user);
@@ -906,6 +924,9 @@ function createCourseApp(options = {}) {
             if (!user.consent_at) {
               user.consent_at = new Date(now).toISOString();
               user.consent_version = "1.0";
+            }
+            if (licTier === "pro" || !user.tier) {
+              user.tier = licTier;
             }
           }
 
@@ -925,14 +946,16 @@ function createCourseApp(options = {}) {
           writeJsonAtomic(licensesFile, licensesDb, { backup: true });
 
           const cookieToken = signSession({ uid: user.id, jti, iat: now, exp }, secret);
+          const userTier = user.tier || licTier;
           return {
             status: 200,
             cookie: cookieToken,
             payload: {
               authenticated: true,
               unlocked: true,
+              tier: userTier,
               course_id: courseId,
-              user: publicUserDto({ user, unlocked: true }),
+              user: publicUserDto({ user, unlocked: true, tier: userTier }),
             },
           };
         });
@@ -991,9 +1014,16 @@ function createCourseApp(options = {}) {
 
           const licensesDb = readDbStrict(licensesFile, "licenses");
           const courseId = getCourseId();
-          const unlocked = licensesDb.licenses.some(
+          const userLicenses = licensesDb.licenses.filter(
             (l) => !l.revoked && l.bound_user_id === user.id && (l.course_id === courseId || l.course_id === "*")
           );
+          const unlocked = userLicenses.length > 0;
+          const isPro = userLicenses.some((l) => getLicenseTier(l) === "pro") || user.tier === "pro";
+          const userTier = unlocked ? (isPro ? "pro" : "standard") : null;
+          if (unlocked && user.tier !== userTier) {
+            user.tier = userTier;
+            writeJsonAtomic(usersFile, usersDb, { backup: true });
+          }
 
           const cookieToken = signSession({ uid: user.id, jti, iat: now, exp }, secret);
           return {
@@ -1002,8 +1032,9 @@ function createCourseApp(options = {}) {
             payload: {
               authenticated: true,
               unlocked,
+              tier: userTier,
               course_id: courseId,
-              user: publicUserDto({ user, unlocked }),
+              user: publicUserDto({ user, unlocked, tier: userTier }),
             },
           };
         });
@@ -1043,12 +1074,32 @@ function createCourseApp(options = {}) {
           if (lic.bound_user_id && lic.bound_user_id !== ctx.user.id) {
             return { status: 403, payload: { error: "Mã kích hoạt này đã được tài khoản khác sử dụng." } };
           }
+          const licTier = getLicenseTier(lic);
           lic.bound_user_id = ctx.user.id;
           lic.bound_email_masked = ctx.user.email.replace(/(^..).*(@.*$)/, "$1***$2");
           if (!lic.activated_at) lic.activated_at = new Date().toISOString();
           licensesDb.secret_fp = licenseFp;
           writeJsonAtomic(licensesFile, licensesDb, { backup: true });
-          return { status: 200, payload: { unlocked: true, user: publicUserDto({ ...ctx, unlocked: true }) } };
+
+          const usersDb = readDbStrict(usersFile, "users");
+          const targetUser = usersDb.users.find((u) => u.id === ctx.user.id);
+          let effectiveTier = licTier;
+          if (targetUser) {
+            if (licTier === "pro" || !targetUser.tier) {
+              targetUser.tier = licTier;
+              writeJsonAtomic(usersFile, usersDb, { backup: true });
+            }
+            effectiveTier = targetUser.tier || licTier;
+          }
+
+          return {
+            status: 200,
+            payload: {
+              unlocked: true,
+              tier: effectiveTier,
+              user: publicUserDto({ ...ctx, unlocked: true, tier: effectiveTier }),
+            },
+          };
         });
         return sendJson(res, result.status, result.payload);
       }
@@ -1124,11 +1175,21 @@ function createCourseApp(options = {}) {
         }
         const body = await readJsonBody(req);
         const count = Math.min(200, Math.max(1, Number(body.count || 1)));
-        const defaultPrefix =
-          (courseCfg.target_lang && courseCfg.target_lang.code ? String(courseCfg.target_lang.code) : "KEY")
+
+        // Support tier: "standard" | "pro"
+        const reqTier = String(body.tier || "").toLowerCase();
+        const reqPrefix = String(body.prefix || "").toUpperCase();
+        const isPro = reqTier === "pro" || reqPrefix.includes("PRO");
+        const tier = isPro ? "pro" : "standard";
+        const tierTag = isPro ? "PRO" : "STD";
+
+        let baseLang =
+          (courseCfg.target_lang && courseCfg.target_lang.code ? String(courseCfg.target_lang.code) : "LAO")
             .toUpperCase()
-            .replace(/[^A-Z0-9]/g, "") || "KEY";
-        const prefix = String(body.prefix || defaultPrefix).replace(/[^A-Z0-9]/g, "") || "KEY";
+            .replace(/[^A-Z0-9]/g, "") || "LAO";
+        if (baseLang === "LO") baseLang = "LAO";
+        const defaultPrefix = `${baseLang}-${tierTag}`;
+        const prefix = reqPrefix ? reqPrefix.replace(/[^A-Z0-9-]/g, "") : defaultPrefix;
         const courseId = String(body.course_id || getCourseId());
         const note = String(body.note || "").slice(0, 120);
         const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -1138,14 +1199,15 @@ function createCourseApp(options = {}) {
           db.secret_fp = licenseFp;
           const rawKeys = [];
           for (let i = 0; i < count; i++) {
-            const bytes = crypto.randomBytes(12);
+            const bytes = crypto.randomBytes(8);
             let seg = "";
-            for (let j = 0; j < 12; j++) seg += alphabet[bytes[j] % alphabet.length];
-            const rawKey = `${prefix}-${seg.slice(0, 4)}-${seg.slice(4, 8)}-${seg.slice(8, 12)}`;
+            for (let j = 0; j < 8; j++) seg += alphabet[bytes[j] % alphabet.length];
+            const rawKey = `${prefix}-${seg.slice(0, 4)}-${seg.slice(4, 8)}`;
             db.licenses.push({
               id: "lic_" + crypto.randomBytes(6).toString("hex"),
               key_hash: hashLicenseKey(rawKey, licenseSecret),
-              hint: `${prefix}-****-${seg.slice(8, 12)}`,
+              hint: `${prefix}-****-${seg.slice(4, 8)}`,
+              tier,
               course_id: courseId,
               note,
               revoked: false,
@@ -1157,7 +1219,7 @@ function createCourseApp(options = {}) {
           writeJsonAtomic(licensesFile, db, { backup: true });
           return rawKeys;
         });
-        return sendJson(res, 200, { count: created.length, keys: created });
+        return sendJson(res, 200, { count: created.length, tier, keys: created });
       }
 
       // ---- PROTECTED AUDIO GATEWAY ----
@@ -1268,6 +1330,7 @@ module.exports = {
   licenseSecretFingerprint,
   passwordNeedsRehash,
   normalizeLicenseKey,
+  getLicenseTier,
   hashPassword,
   verifyPassword,
   signSession,

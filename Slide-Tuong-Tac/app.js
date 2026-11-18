@@ -32,6 +32,7 @@
     serverAvailable: false,
     authenticated: false,
     unlocked: false,
+    tier: null,
     user: null,
     tab: "activate",
   };
@@ -762,6 +763,22 @@
       title = "Từ Điển Sinh Tồn & Tra Cứu Toàn Khóa";
     }
     document.getElementById("activeTitle").textContent = title;
+
+    const topbarTierEl = document.getElementById("topbarTierBadge");
+    if (topbarTierEl) {
+      if (authState.authenticated && authState.unlocked && authState.tier) {
+        topbarTierEl.classList.remove("hidden");
+        if (authState.tier === "pro") {
+          topbarTierEl.className = "badge-tier badge-pro";
+          topbarTierEl.textContent = "👑 PRO VIP";
+        } else {
+          topbarTierEl.className = "badge-tier badge-std";
+          topbarTierEl.textContent = "⭐ STANDARD";
+        }
+      } else {
+        topbarTierEl.classList.add("hidden");
+      }
+    }
 
     document.getElementById("toggleTarget").classList.toggle("on", state.showTarget);
     document.getElementById("togglePhonetic").classList.toggle("on", state.showPhonetic);
@@ -2074,9 +2091,16 @@
 
     if (authState.authenticated && authState.user && authState.unlocked) {
       const u = authState.user;
+      const isPro = authState.tier === "pro";
+      const tierBadge = isPro
+        ? `<span class="badge-tier badge-pro">👑 PRO VIP</span>`
+        : `<span class="badge-tier badge-std">⭐ STANDARD</span>`;
+      const tierDesc = isPro
+        ? "Đã mở khóa trọn gói PRO VIP (Kèm AI Lab)"
+        : "Đã mở khóa trọn gói Standard (8 Chương trọn đời)";
       box.innerHTML = `
-        <div class="acc-email">✅ ${escapeHtml(u.email)}</div>
-        <div style="color:var(--text-muted);">Đã kích hoạt trọn khóa (${u.active_devices || 1}/${u.max_devices || 3} thiết bị)</div>
+        <div class="acc-email">✅ ${escapeHtml(u.email)} ${tierBadge}</div>
+        <div style="color:var(--text-muted);">${tierDesc} (${u.active_devices || 1}/${u.max_devices || 3} thiết bị)</div>
         <div class="acc-actions">
           <button class="btn btn-sm" id="btnSyncNow" type="button">☁️ Đồng bộ</button>
           <button class="btn btn-sm" id="btnLogout" type="button">Đăng xuất</button>
@@ -2284,7 +2308,7 @@
       bodyEl.innerHTML = `
         <form class="auth-form" id="formActivateOnly">
           <label>Mã kích hoạt khóa học
-            <input type="text" id="actKeyOnly" required placeholder="VD: LAO-XXXX-XXXX-XXXX" autocomplete="off" />
+            <input type="text" id="actKeyOnly" required placeholder="VD: LAO-STD-XXXX-XXXX hoặc LAO-PRO-XXXX-XXXX" autocomplete="off" />
           </label>
           <div class="auth-msg hidden" id="authFormMsg"></div>
           <button class="btn btn-primary" type="submit">🎟️ Xác nhận kích hoạt</button>
@@ -2329,7 +2353,7 @@
             <input type="password" id="regPassword" required minlength="8" placeholder="Tối thiểu 8 ký tự" autocomplete="new-password" />
           </label>
           <label>Mã kích hoạt (License Key)
-            <input type="text" id="regLicense" required placeholder="VD: LAO-XXXX-XXXX-XXXX" autocomplete="off" />
+            <input type="text" id="regLicense" required placeholder="VD: LAO-STD-XXXX-XXXX hoặc LAO-PRO-XXXX-XXXX" autocomplete="off" />
           </label>
           <div class="auth-policy-group">
             <label class="auth-policy-label">
@@ -2376,6 +2400,7 @@
       }
       authState.authenticated = true;
       authState.unlocked = !!data.unlocked;
+      authState.tier = data.tier || (data.user && data.user.tier) || null;
       authState.user = data.user || null;
 
       if (authState.unlocked) {
@@ -2466,6 +2491,7 @@
       authState.serverAvailable = true;
       authState.authenticated = !!data.authenticated;
       authState.unlocked = !!data.unlocked;
+      authState.tier = data.tier || (data.user && data.user.tier) || null;
       authState.user = data.user || null;
       if (authState.unlocked && META.access_mode === "preview") {
         await loadUnlockedCurriculumAndProgress();
