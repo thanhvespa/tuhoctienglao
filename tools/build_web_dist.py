@@ -118,10 +118,14 @@ def build_dist_web(out_dir: Path, symlink_media: bool = False) -> None:
         encoding="utf-8",
     )
 
-    # Write root redirect page
-    safe_title = html.escape(str(CFG.get("course_title", "Tự Học Nghe – Nói")), quote=False)
-    (public_dir / "index.html").write_text(
-        f"""<!DOCTYPE html>
+    # Write root landing page (or fallback redirect page)
+    landing_src = ROOT / "Landing-Page" / "index.html"
+    if landing_src.exists():
+        shutil.copy2(landing_src, public_dir / "index.html")
+    else:
+        safe_title = html.escape(str(CFG.get("course_title", "Tự Học Nghe – Nói")), quote=False)
+        (public_dir / "index.html").write_text(
+            f"""<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
@@ -133,8 +137,8 @@ def build_dist_web(out_dir: Path, symlink_media: bool = False) -> None:
 </body>
 </html>
 """,
-        encoding="utf-8",
-    )
+            encoding="utf-8",
+        )
 
     # Write full unlocked dataset strictly into protected/ (never publicly served)
     full_copy = copy.deepcopy(full_data)

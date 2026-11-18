@@ -128,8 +128,10 @@ async function startApp(t, overrides = {}) {
     return res.json.keys;
   };
 
-  const register = async (email, key, ip = "198.51.100.1") => {
-    const res = await call("POST", "/api/auth/register", { email, password: PASSWORD, license_key: key }, { "x-forwarded-for": ip });
+  const register = async (email, key, ip = "198.51.100.1", consent = true) => {
+    const payload = { email, password: PASSWORD, license_key: key };
+    if (consent) payload.consent = true;
+    const res = await call("POST", "/api/auth/register", payload, { "x-forwarded-for": ip });
     const cookie = ((res.headers["set-cookie"] || [""])[0] || "").split(";")[0];
     return { res, cookie };
   };
@@ -189,6 +191,19 @@ test("register, unlock curriculum, login, logout", async (t) => {
 
   assert.equal((await ctx.call("POST", "/api/auth/logout", null, { cookie })).status, 200);
   assert.equal((await ctx.call("GET", "/api/curriculum", null, { cookie })).status, 401);
+});
+
+test("register requires consent under Decree 13/2023/ND-CP", async (t) => {
+  const ctx = await startApp(t);
+  const [key] = await ctx.issueKeys();
+  const res = await ctx.call(
+    "POST",
+    "/api/auth/register",
+    { email: "no-consent@example.test", password: PASSWORD, license_key: key, consent: false },
+    { "x-forwarded-for": "198.51.100.1" }
+  );
+  assert.equal(res.status, 400);
+  assert.match(res.json.error, /Nghị định 13\/2023\/NĐ-CP/);
 });
 
 test("a license key cannot be bound to a second account", async (t) => {

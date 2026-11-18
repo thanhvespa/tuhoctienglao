@@ -2114,6 +2114,121 @@
     document.getElementById("btnOpenAuthBox").onclick = () => openAuthModal("activate");
   }
 
+  /* ==================== Policy & Legal (Nghị định 13/2023/NĐ-CP) ==================== */
+  let activePolicyTab = "terms";
+
+  const POLICY_SECTIONS = {
+    terms: `
+      <div class="policy-section">
+        <h4>1. Phạm vi &amp; Đối tượng áp dụng</h4>
+        <p>Điều khoản này áp dụng cho mọi cá nhân truy cập, học thử hoặc kích hoạt bản quyền khóa học <strong>"Tự Học Nghe – Nói Tiếng Lào Cho Người Việt"</strong> trên nền tảng Web/PWA.</p>
+      </div>
+      <div class="policy-section">
+        <h4>2. Quyền sở hữu trí tuệ giáo trình</h4>
+        <p>Toàn bộ nội dung khóa học bao gồm 8 chương (27 bài học), 840 thẻ từ vựng audio người bản xứ, hệ thống video shadowing, bài kiểm tra sát hạch và cấu trúc dữ liệu thuộc quyền sở hữu trí tuệ độc quyền của ban phát triển dự án. Người học được cấp quyền sử dụng cá nhân (Personal Non-commercial License), <strong>nghiêm cấm mọi hành vi trích xuất, sao chép, chia sẻ công khai hoặc bán lại dưới mọi hình thức</strong>.</p>
+      </div>
+      <div class="policy-section">
+        <h4>3. Quy định Kích hoạt &amp; Mã bản quyền (License Key)</h4>
+        <ul>
+          <li>Mỗi mã kích hoạt chỉ được gắn cố định với <strong>01 địa chỉ email duy nhất</strong> của học viên.</li>
+          <li>Học viên được phép đăng nhập và đồng bộ tiến độ học trên tối đa <strong>03 thiết bị cá nhân</strong> (Điện thoại, Máy tính bảng, Máy tính xách tay/PC).</li>
+          <li>Hệ thống tự động phát hiện và khóa vĩnh viễn các mã kích hoạt bị phát tán công khai hoặc có dấu hiệu chia sẻ bất thường.</li>
+        </ul>
+      </div>
+      <div class="policy-section">
+        <h4>4. Phân tầng Gói dịch vụ (Standard vs. Pro)</h4>
+        <p><strong>Gói Tiêu Chuẩn (Standard):</strong> Mở toàn bộ 8 chương học, 840 flashcard audio bản xứ, tính năng tự ghi âm đối chiếu cơ bản và đồng bộ tiến trình học.</p>
+        <p><strong>Gói Chuyên Sâu (Pro AI Lab):</strong> Bao gồm toàn bộ quyền lợi Standard, tích hợp thêm Phòng Luyện Nói AI (so sánh sóng âm, chấm điểm % độ chuẩn xác thanh điệu, phân tích phát âm chi tiết) và kết nối Bot nhắc học, đố vui 1-1.</p>
+      </div>
+    `,
+    privacy: `
+      <div class="policy-section">
+        <h4>1. Tuân thủ Nghị định 13/2023/NĐ-CP</h4>
+        <p>Chúng tôi cam kết bảo vệ dữ liệu cá nhân của học viên theo đúng quy định tại <strong>Nghị định số 13/2023/NĐ-CP</strong> của Chính phủ nước Cộng hòa Xã hội Chủ nghĩa Việt Nam về Bảo vệ dữ liệu cá nhân.</p>
+      </div>
+      <div class="policy-section">
+        <h4>2. Dữ liệu cá nhân chúng tôi thu thập</h4>
+        <ul>
+          <li><strong>Thông tin tài khoản:</strong> Địa chỉ Email (dùng làm định danh duy nhất), Tên hiển thị, Mật khẩu được mã hóa an toàn một chiều qua thuật toán <code>scrypt</code>.</li>
+          <li><strong>Dữ liệu tiến trình học tập:</strong> Các bài học đã hoàn thành, điểm kiểm tra trắc nghiệm, danh sách từ vựng yêu thích, chuỗi ngày học liên tục (streak).</li>
+          <li><strong>Dữ liệu âm thanh phát âm:</strong> Các đoạn ghi âm giọng đọc do người học tự thực hiện khi luyện tập.</li>
+        </ul>
+      </div>
+      <div class="policy-section">
+        <h4>3. Mục đích xử lý dữ liệu</h4>
+        <p>Dữ liệu cá nhân chỉ được sử dụng cho các mục đích hợp pháp sau:</p>
+        <ul>
+          <li>Xác thực bản quyền khóa học và bảo vệ tài khoản của bạn.</li>
+          <li>Đồng bộ hóa dữ liệu tiến trình học tập liên tục giữa các thiết bị của bạn.</li>
+          <li>Phân tích tín hiệu âm học nhằm đưa ra điểm số và gợi ý phát âm chuẩn cho cá nhân bạn.</li>
+        </ul>
+      </div>
+      <div class="policy-section">
+        <h4>4. Cam kết bảo mật &amp; Không chia sẻ với bên thứ ba</h4>
+        <p>Chúng tôi <strong>tuyệt đối KHÔNG bán, cho thuê, trao đổi</strong> thông tin cá nhân hoặc dữ liệu học tập của bạn cho bất kỳ bên thứ ba nào vì mục đích thương mại hoặc quảng cáo. Mọi kết nối truyền tải đều được mã hóa bằng giao thức HTTPS/TLS.</p>
+      </div>
+      <div class="policy-section">
+        <h4>5. Quyền của chủ thể dữ liệu (Data Subject Rights)</h4>
+        <p>Theo quy định của pháp luật Việt Nam, bạn có các quyền đầy đủ sau:</p>
+        <ul>
+          <li><strong>Quyền được biết &amp; đồng ý:</strong> Được thông báo minh bạch trước khi thu thập dữ liệu (thông qua văn bản này).</li>
+          <li><strong>Quyền trích xuất &amp; tải về:</strong> Bạn có thể xuất toàn bộ lịch sử học tập ra file JSON bất kỳ lúc nào qua nút <em>"💾 Lưu"</em>.</li>
+          <li><strong>Quyền yêu cầu xóa dữ liệu:</strong> Bạn có quyền yêu cầu xóa vĩnh viễn tài khoản và toàn bộ dữ liệu liên quan khỏi hệ thống máy chủ.</li>
+        </ul>
+      </div>
+    `,
+    audio: `
+      <div class="policy-section">
+        <h4>1. Bảo mật dữ liệu giọng nói học viên</h4>
+        <p>Khi sử dụng chức năng <strong>Tự ghi âm so sánh</strong> hoặc <strong>Phòng Luyện Phát Âm Pro</strong>, trình duyệt sẽ yêu cầu quyền truy cập Micro của bạn.</p>
+      </div>
+      <div class="policy-section">
+        <h4>2. Cơ chế lưu trữ âm thanh</h4>
+        <ul>
+          <li>Bản ghi âm giọng nói của bạn được xử lý cục bộ trên thiết bị của bạn (thông qua Web Audio API &amp; Blob/IndexedDB).</li>
+          <li>Khi gửi dữ liệu so khớp lên máy chủ (cho gói Pro), file âm thanh chỉ được dùng để tính toán chỉ số tương đồng với giọng mẫu và trả về điểm số phần trăm (%).</li>
+          <li>Chúng tôi <strong>không lưu trữ vĩnh viễn và không công khai bản ghi âm giọng nói của bạn</strong> cho người dùng khác.</li>
+          <li>Giọng nói của bạn tuyệt đối không được sử dụng để huấn luyện các mô hình AI thương mại công cộng nếu chưa có sự cho phép bằng văn bản riêng.</li>
+        </ul>
+      </div>
+      <div class="policy-section">
+        <h4>3. Quyền kiểm soát micro</h4>
+        <p>Bạn có toàn quyền thu âm lại, xóa bản thu cũ ngay trên giao diện hoặc tắt quyền micro trong phần cài đặt trình duyệt bất cứ lúc nào.</p>
+      </div>
+    `
+  };
+
+  function openPolicyModal(tab = "terms") {
+    activePolicyTab = tab;
+    const modal = document.getElementById("policyModal");
+    if (!modal) return;
+    renderPolicyModalBody();
+    modal.classList.remove("hidden");
+  }
+
+  function closePolicyModal() {
+    const modal = document.getElementById("policyModal");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  function renderPolicyModalBody() {
+    const tabsEl = document.getElementById("policyModalTabs");
+    if (tabsEl) {
+      tabsEl.querySelectorAll("button[data-policy-tab]").forEach((btn) => {
+        const t = btn.getAttribute("data-policy-tab");
+        if (t === activePolicyTab) {
+          btn.classList.add("btn-primary");
+        } else {
+          btn.classList.remove("btn-primary");
+        }
+      });
+    }
+    const bodyEl = document.getElementById("policyModalBody");
+    if (bodyEl) {
+      bodyEl.innerHTML = POLICY_SECTIONS[activePolicyTab] || POLICY_SECTIONS.terms;
+    }
+  }
+
   function openAuthModal(tab) {
     const modal = document.getElementById("authModal");
     if (!modal) return;
@@ -2216,16 +2331,31 @@
           <label>Mã kích hoạt (License Key)
             <input type="text" id="regLicense" required placeholder="VD: LAO-XXXX-XXXX-XXXX" autocomplete="off" />
           </label>
+          <div class="auth-policy-group">
+            <label class="auth-policy-label">
+              <input type="checkbox" id="regConsentPolicy" required />
+              <span>Tôi đã đọc và đồng ý với <button type="button" class="btn-link-policy" id="btnOpenPolicyFromReg">Điều khoản dịch vụ &amp; Chính sách bảo mật</button> (theo Nghị định 13/2023/NĐ-CP).</span>
+            </label>
+          </div>
           <div class="auth-msg hidden" id="authFormMsg"></div>
           <button class="btn btn-primary" type="submit">✨ Kích hoạt &amp; Mở toàn khóa</button>
         </form>
       `;
+      const linkPolicy = document.getElementById("btnOpenPolicyFromReg");
+      if (linkPolicy) linkPolicy.onclick = () => openPolicyModal("privacy");
+
       document.getElementById("formAuthActivate").onsubmit = async (e) => {
         e.preventDefault();
+        const consent = document.getElementById("regConsentPolicy")?.checked;
+        if (!consent) {
+          setAuthMessage("Vui lòng tích chọn đồng ý với Điều khoản dịch vụ và Chính sách bảo vệ dữ liệu cá nhân.", false);
+          return;
+        }
         await submitAuthForm("/api/auth/register", {
           email: document.getElementById("regEmail").value.trim(),
           password: document.getElementById("regPassword").value,
           license_key: document.getElementById("regLicense").value.trim(),
+          consent: true,
         });
       };
     }
@@ -2396,6 +2526,31 @@
     if (authModal) {
       authModal.addEventListener("click", (e) => {
         if (e.target === authModal) closeAuthModal();
+      });
+    }
+
+    const btnShowPolicy = document.getElementById("btnShowPolicy");
+    if (btnShowPolicy) btnShowPolicy.onclick = () => openPolicyModal("terms");
+
+    const closePolicyBtn = document.getElementById("btnClosePolicyModal");
+    if (closePolicyBtn) closePolicyBtn.onclick = closePolicyModal;
+    const acceptPolicyBtn = document.getElementById("btnAcceptPolicyClose");
+    if (acceptPolicyBtn) acceptPolicyBtn.onclick = closePolicyModal;
+
+    const policyModal = document.getElementById("policyModal");
+    if (policyModal) {
+      policyModal.addEventListener("click", (e) => {
+        if (e.target === policyModal) closePolicyModal();
+      });
+    }
+
+    const policyTabs = document.getElementById("policyModalTabs");
+    if (policyTabs) {
+      policyTabs.querySelectorAll("button[data-policy-tab]").forEach((btn) => {
+        btn.onclick = () => {
+          activePolicyTab = btn.getAttribute("data-policy-tab") || "terms";
+          renderPolicyModalBody();
+        };
       });
     }
 

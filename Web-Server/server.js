@@ -828,6 +828,13 @@ function createCourseApp(options = {}) {
         const password = String(body.password || "");
         const rawKey = String(body.license_key || "");
         const displayName = String(body.display_name || "").trim().slice(0, 60);
+        const consent = body.consent === true || body.consent === "true";
+
+        if (!consent) {
+          return sendJson(res, 400, {
+            error: "Bạn cần đồng ý với Điều khoản dịch vụ và Chính sách bảo vệ dữ liệu cá nhân (theo Nghị định 13/2023/NĐ-CP) để kích hoạt tài khoản.",
+          });
+        }
 
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 120) {
           return sendJson(res, 400, { error: "Email không hợp lệ." });
@@ -889,11 +896,17 @@ function createCourseApp(options = {}) {
               display_name: displayName || email.split("@")[0],
               password_hash: freshHash,
               created_at: new Date(now).toISOString(),
+              consent_at: new Date(now).toISOString(),
+              consent_version: "1.0",
               sessions: [],
             };
             usersDb.users.push(user);
-          } else if (freshHash) {
-            user.password_hash = freshHash;
+          } else {
+            if (freshHash) user.password_hash = freshHash;
+            if (!user.consent_at) {
+              user.consent_at = new Date(now).toISOString();
+              user.consent_version = "1.0";
+            }
           }
 
           lic.bound_user_id = user.id;

@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Tự Học Tiếng Lào Cho Người Việt – Nghe & Nói Phản Xạ 30-60 Phút/Ngày</title>
+  <meta name="description" content="Chương trình tự học nghe - nói tiếng Lào dành riêng cho người Việt từ số 0. Nói được ngay từ tuần đầu với 838 audio bản xứ Viêng Chăn, Flashcard phản xạ 3s, học Offline trên điện thoại." />
+  <meta name="keywords" content="tự học tiếng lào, tiếng lào giao tiếp, học tiếng lào cho người việt, audio tiếng lào, từ vựng tiếng lào, pwa tiếng lào" />
+  <meta name="theme-color" content="#146c53" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Tự Học Nghe – Nói Tiếng Lào Cho Người Việt (Từ Số 0)" />
+  <meta property="og:description" content="Nói được tiếng Lào ngay từ tuần đầu tiên. 80% Nghe & Nói phản xạ, 838 audio chuẩn Viêng Chăn, học Offline 100% trên điện thoại." />
+  <meta property="og:image" content="./Slide-Tuong-Tac/icons/icon-512.png" />
+
+  <!-- Icons -->
+  <link rel="icon" type="image/png" href="./Slide-Tuong-Tac/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./Slide-Tuong-Tac/icons/icon-192.png" />
+
+  <style>
+    /* Reset & Base Variables */
+    :root {
+      --primary: #146c53;
+      --primary-hover: #0f533f;
+      --primary-light: #e8f5f1;
+      --primary-glow: rgba(20, 108, 83, 0.16);
+      --gold: #d97706;
+      --gold-hover: #b45309;
+      --gold-light: #fef3c7;
+      --gold-glow: rgba(217, 119, 6, 0.2);
+      --bg: #faf8f5;
+      --surface: #ffffff;
+      --border: #e8e3d9;
+      --text-main: #18221e;
+      --text-muted: #5c6b64;
+      --zalo: #0068ff;
+      --zalo-hover: #0056d6;
+      --tele: #229ed9;
+      --tele-hover: #1b85b8;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+      --shadow-md: 0 8px 24px rgba(20, 108, 83, 0.08);
+      --shadow-lg: 0 16px 40px rgba(20, 108, 83, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Header Nav */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      background: rgba(250, 248, 245, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .nav-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--primary);
+    }
+
+    .brand-logo .flag-icon {
+      font-size: 1.6rem;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+
+    .brand-logo span.badge-vi {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 6px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(20, 108, 83, 0.25);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      box-shadow: 0 4px 14px var(--gold-glow);
+    }
+
+    .btn-gold:hover {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(217, 119, 6, 0.3);
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      color: var(--text-main);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .btn-tele {
+      background: var(--tele);
+      color: #ffffff;
+    }
+    .btn-tele:hover {
+      background: var(--tele-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-zalo {
+      background: var(--zalo);
+      color: #ffffff;
+    }
+    .btn-zalo:hover {
+      background: var(--zalo-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 0.86rem;
+    }
+
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 1.05rem;
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      padding: 70px 0 60px;
+      overflow: hidden;
+    }
+
+    /* Laos Cultural Subtle Background Patterns */
+    .hero-bg-laos {
+      position: absolute;
+      top: -10%;
+      right: -5%;
+      width: 550px;
+      height: 550px;
+      opacity: 0.07;
+      pointer-events: none;
+      z-index: 0;
+      color: var(--primary);
+    }
+
+    .hero-bg-waves {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 120px;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--primary);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-size: 2.9rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+      color: #12211b;
+    }
+
+    .hero-title .highlight {
+      background: linear-gradient(135deg, #146c53 30%, #d97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 1.12rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      max-width: 560px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+
+    .trust-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .trust-badges span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Interactive Demo Card in Hero */
+    .hero-card-preview {
+      background: #ffffff;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 28px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+
+    .card-top-tag {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .champa-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #d97706;
+      background: var(--gold-light);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* Flashcard Sample Interactive */
+    .interactive-flashcard {
+      background: linear-gradient(135deg, #f7fdfa 0%, #f1f8f5 100%);
+      border: 2px dashed #bfe4d6;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      user-select: none;
+    }
+
+    .interactive-flashcard:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .flash-step-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .flash-vi {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .flash-lo-reveal {
+      background: #ffffff;
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+      margin-top: 10px;
+      transition: all 0.3s;
+    }
+
+    .flash-script {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.3;
+      margin-bottom: 4px;
+      font-family: "Noto Sans Lao", -apple-system, sans-serif;
+    }
+
+    .flash-phonetic {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #d97706;
+    }
+
+    .flash-hint {
+      margin-top: 14px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .mini-audio-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 30px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mini-audio-btn:hover {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    /* Ribbon / Lao Textile Divider */
+    .lao-ribbon-divider {
+      height: 10px;
+      background: repeating-linear-gradient(
+        45deg,
+        #146c53,
+        #146c53 14px,
+        #d97706 14px,
+        #d97706 24px,
+        #ffffff 24px,
+        #ffffff 28px
+      );
+      opacity: 0.75;
+    }
+
+    /* Section Styling */
+    .section {
+      padding: 80px 0;
+      position: relative;
+    }
+
+    .section-alt {
+      background-color: #ffffff;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 52px;
+    }
+
+    .section-tag {
+      display: inline-block;
+      font-size: 0.84rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      background: var(--primary-light);
+      padding: 4px 14px;
+      border-radius: 30px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 2.15rem;
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -0.01em;
+      color: #12211b;
+      margin-bottom: 14px;
+    }
+
+    .section-desc {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    /* Grid 4: Why Vietnamese learn Lao super fast */
+    .reasons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+    }
+
+    .reason-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 26px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .section-alt .reason-card {
+      background: #faf8f5;
+    }
+
+    .reason-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .reason-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 18px;
+    }
+
+    .reason-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #12211b;
+    }
+
+    .reason-text {
+      font-size: 0.94rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .reason-example {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: #ffffff;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      border-left: 3px solid var(--primary);
+    }
+
+    /* 8 Chapters Curriculum Showcase */
+    .chapters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .chapter-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .chapter-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .chapter-card.free-badge-card {
+      border-color: #34d399;
+      background: linear-gradient(180deg, #f0fdf7 0%, #ffffff 60%);
+    }
+
+    .chapter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .chapter-num {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--primary);
+      background: var(--primary-light);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .free-pill {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: #10b981;
+      color: #ffffff;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .chapter-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .chapter-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Curriculum Stats Bar */
+    .stats-bar {
+      background: linear-gradient(135deg, #146c53 0%, #0d4a39 100%);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 36px 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 20px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-item .stat-number {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #fbbf24;
+      line-height: 1.2;
+    }
+
+    .stat-item .stat-label {
+      font-size: 0.88rem;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    /* App Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+    }
+
+    .feature-item {
+      display: flex;
+      gap: 20px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      transition: all 0.25s;
+    }
+
+    .feature-item:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .feature-icon-box {
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      border-radius: 14px;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+    }
+
+    .feature-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #12211b;
+    }
+
+    .feature-desc {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Pricing Section */
+    .pricing-card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      text-align: center;
+    }
+
+    .pricing-badge-popular {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      font-size: 0.84rem;
+      font-weight: 800;
+      padding: 6px 18px;
+      border-radius: 30px;
+      box-shadow: 0 4px 10px rgba(217, 119, 6, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .price-value-box {
+      margin: 24px 0 28px;
+    }
+
+    .price-original {
+      font-size: 1.05rem;
+      text-decoration: line-through;
+      color: var(--text-muted);
+      margin-right: 10px;
+    }
+
+    .price-current {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .price-note {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .pricing-benefits {
+      text-align: left;
+      list-style: none;
+      margin-bottom: 32px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .pricing-benefits li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.98rem;
+      color: var(--text-main);
+    }
+
+    .pricing-benefits li svg {
+      flex-shrink: 0;
+      margin-top: 3px;
+      color: #10b981;
+    }
+
+    /* Support Channels Box */
+    .support-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .support-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 30px 24px;
+      text-align: center;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .support-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-3px);
+    }
+
+    .support-card.card-tele {
+      border-top: 4px solid var(--tele);
+    }
+
+    .support-card.card-zalo {
+      border-top: 4px solid var(--zalo);
+    }
+
+    .support-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .card-tele .support-icon {
+      background: rgba(34, 158, 217, 0.12);
+      color: var(--tele);
+    }
+
+    .card-zalo .support-icon {
+      background: rgba(0, 104, 255, 0.12);
+      color: var(--zalo);
+    }
+
+    .support-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .support-desc {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+
+    /* FAQ Section */
+    .faq-list {
+      max-width: 780px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .faq-item {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .faq-question {
+      padding: 18px 24px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .faq-question:hover {
+      color: var(--primary);
+    }
+
+    .faq-answer {
+      padding: 0 24px 20px;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      display: none;
+    }
+
+    .faq-item.active .faq-answer {
+      display: block;
+    }
+
+    .faq-toggle-icon {
+      transition: transform 0.25s;
+    }
+
+    .faq-item.active .faq-toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    /* Footer */
+    .footer {
+      background: #111a16;
+      color: #9ca3af;
+      padding: 60px 0 30px;
+      font-size: 0.9rem;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-brand h3 {
+      color: #ffffff;
+      font-size: 1.25rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-brand p {
+      max-width: 380px;
+      line-height: 1.6;
+    }
+
+    .footer-col h4 {
+      color: #ffffff;
+      font-size: 1rem;
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .footer-col a:hover {
+      color: #ffffff;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid #23332c;
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.84rem;
+    }
+
+    /* Floating Contact Widget (Zalo & Telegram) */
+    .floating-support {
+      position: fixed;
+      right: 20px;
+      bottom: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .float-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+    }
+
+    .float-btn:hover {
+      transform: scale(1.12);
+    }
+
+    .float-btn-zalo {
+      background: var(--zalo);
+    }
+
+    .float-btn-tele {
+      background: var(--tele);
+    }
+
+    .float-tooltip {
+      position: absolute;
+      right: 64px;
+      background: #18221e;
+      color: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      white-space: nowrap;
+      padding: 6px 12px;
+      border-radius: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      transform: translateX(6px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .float-btn:hover .float-tooltip {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* Sticky Bottom Bar for Mobile */
+    .mobile-bottom-bar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      padding: 10px 16px;
+      z-index: 998;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .hero-title {
+        font-size: 2.2rem;
+      }
+      .hero-desc {
+        margin: 0 auto 28px;
+      }
+      .hero-actions {
+        justify-content: center;
+      }
+      .trust-badges {
+        justify-content: center;
+      }
+      .nav-links {
+        display: none;
+      }
+      .footer-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .hero {
+        padding: 40px 0 50px;
+      }
+      .hero-title {
+        font-size: 1.85rem;
+      }
+      .section {
+        padding: 50px 0;
+      }
+      .section-title {
+        font-size: 1.65rem;
+      }
+      .pricing-card {
+        padding: 28px 18px;
+      }
+      .mobile-bottom-bar {
+        display: flex;
+      }
+      .floating-support {
+        bottom: 74px;
+        right: 14px;
+      }
+      body {
+        padding-bottom: 60px;
+      }
+    }
+
+    /* Policy Modal Styles */
+    .landing-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      transition: opacity 0.2s ease;
+    }
+    .landing-modal-backdrop.hidden {
+      display: none;
+    }
+    .landing-modal-card {
+      background: #ffffff;
+      color: #1f2937;
+      width: 100%;
+      max-width: 680px;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+    }
+    .landing-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    .landing-modal-head h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #111827;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .landing-modal-close {
+      background: #f3f4f6;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: #4b5563;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .landing-modal-close:hover {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .landing-modal-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+    }
+    .landing-modal-tab-btn {
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      color: #374151;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .landing-modal-tab-btn.active {
+      background: #146c53;
+      color: #ffffff;
+      border-color: #146c53;
+    }
+    .landing-modal-body {
+      overflow-y: auto;
+      padding-right: 6px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: #374151;
+    }
+    .landing-modal-body h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #146c53;
+      margin: 14px 0 4px 0;
+    }
+    .landing-modal-body p {
+      margin: 0 0 8px 0;
+    }
+    .landing-modal-body ul {
+      margin: 0 0 10px 0;
+      padding-left: 20px;
+    }
+    .landing-modal-body li {
+      margin-bottom: 4px;
+    }
+    .landing-modal-foot {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 14px;
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Contact Action Buttons (Zalo & Telegram) -->
+  <div class="floating-support" aria-label="Kênh hỗ trợ nhanh">
+    <a href="https://t.me/tuhoctienglao_bot" target="_blank" rel="noopener" class="float-btn float-btn-tele" title="Chat Bot Telegram">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 3.98-1.73 6.64-2.87 7.97-3.44 3.79-1.61 4.58-1.89 5.09-1.9.11 0 .37.03.53.17.14.12.18.28.2.45-.01.07-.02.21-.04.37z"/>
+      </svg>
+      <span class="float-tooltip">Chat Bot Telegram</span>
+    </a>
+
+    <a href="https://zalo.me/tuhoctienglao" target="_blank" rel="noopener" class="float-btn float-btn-zalo" title="Hỗ trợ Zalo">
+      <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+        <path d="M24 4C12.95 4 4 12.06 4 22c0 5.68 2.94 10.74 7.63 14.14-.33 2.82-1.61 6.55-1.7 6.78-.14.39.11.8.5.8.14 0 .28-.04.41-.12 3.93-2.39 7.42-4.57 7.72-4.76 1.74.52 3.56.8 5.44.8 11.05 0 20-8.06 20-18S35.05 4 24 4z" fill="currentColor"/>
+        <text x="24" y="27" font-size="14" font-weight="900" fill="#0068ff" text-anchor="middle" font-family="Arial, sans-serif">Zalo</text>
+      </svg>
+      <span class="float-tooltip">Hỗ trợ Zalo 24/7</span>
+    </a>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="header">
+    <div class="container nav-wrapper">
+      <a href="#" class="brand-logo">
+        <span class="flag-icon">🇱🇦</span>
+        <span>Tự Học Tiếng Lào</span>
+        <span class="badge-vi">Cho Người Việt</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#loi-the">Vì Sao Dễ Học?</a></li>
+        <li><a href="#lo-trinh">Lộ Trình 8 Chương</a></li>
+        <li><a href="#tinh-nang">Công Nghệ PWA</a></li>
+        <li><a href="#bang-gia">Mở Khóa Trọn Đời</a></li>
+        <li><a href="#ho-tro">Hỗ Trợ Bot & Zalo</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="./Slide-Tuong-Tac/" class="btn btn-outline btn-sm">Đăng Nhập</a>
+        <a href="./Slide-Tuong-Tac/" class="btn btn-primary btn-sm">Học Thử Ngay</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <!-- SVG Pha That Luang Background Ornament -->
+    <svg class="hero-bg-laos" viewBox="0 0 100 100" fill="currentColor">
+      <path d="M50 5 L52 25 L65 30 L60 45 L78 50 L72 70 L90 75 L85 95 L15 95 L10 75 L28 70 L22 50 L40 45 L35 30 L48 25 Z"/>
+    </svg>
+
+    <div class="container hero-content">
+      <div>
+        <div class="hero-pill">
+          <span>🇱🇦</span> Phương pháp Nghe – Nói Phản Xạ 30–60 phút/ngày
+        </div>
+        <h1 class="hero-title">
+          Tự Học Tiếng Lào Giao Tiếp<br />
+          <span class="highlight">Nói Được Ngay Từ Tuần Đầu</span>
+        </h1>
+        <p class="hero-desc">
+          Thiết kế chuẩn xác cho người Việt: <strong>Không ép học bảng chữ cái phức tạp trước</strong>. Luyện phản xạ 3s, Shadowing đối thoại đời thực với 838 audio giọng bản xứ Viêng Chăn, học Offline 100% trên điện thoại.
+        </p>
+
+        <div class="hero-actions">
+          <a href="./Slide-Tuong-Tac/" class="btn btn-primary btn-lg">
+            <span>🚀 Bắt Đầu Học Thử (Chương 1)</span>
+          </a>
+          <a href="#ho-tro" class="btn btn-outline btn-lg">
+            <span>💬 Hỗ Trợ Qua Bot & Zalo</span>
+          </a>
+        </div>
+
+        <div class="trust-badges">
+          <span>✅ <strong>Học Thử Miễn Phí</strong> Chương 1</span>
+          <span>⚡ Cài đặt PWA <strong>Offline 100%</strong></span>
+          <span>🛡️ Mở khóa 1 lần – <strong>Dùng trọn đời</strong></span>
+        </div>
+      </div>
+
+      <!-- Interactive Mini Flashcard Preview -->
+      <div class="hero-card-preview">
+        <div class="card-top-tag">
+          <span class="champa-badge">🌸 Hoa Chăm-pa • Flashcard Phản Xạ 3s</span>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Bấm để lật thẻ</span>
+        </div>
+
+        <div class="interactive-flashcard" id="demoCard" onclick="toggleDemoCard()">
+          <div class="flash-step-label">Bước 1: Nhìn nghĩa tiếng Việt &amp; Thử phản xạ</div>
+          <div class="flash-vi">"Xin chào! Bạn có khỏe không?"</div>
+          
+          <div class="flash-lo-reveal" id="demoReveal">
+            <div class="flash-script">ສະບາຍດີ! ເຈົ້າສະບາຍດີບໍ່?</div>
+            <div class="flash-phonetic">Xa-bai-đi! Chạu xa-bai-đi bò?</div>
+          </div>
+
+          <div class="flash-hint">
+            <span id="demoCardHint">👉 Bấm vào thẻ để xem đáp án phát âm</span>
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <a href="./Slide-Tuong-Tac/" class="mini-audio-btn">
+            <span>🎧 Mở app nghe 838 câu audio chuẩn Viêng Chăn</span>
+            <span>&rarr;</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Lao Ribbon Divider -->
+  <div class="lao-ribbon-divider"></div>
+
+  <!-- Section 1: Why Vietnamese Learn Lao Super Fast -->
+  <section class="section section-alt" id="loi-the">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Lợi Thế Độc Quyền</span>
+        <h2 class="section-title">Tại Sao Người Việt Học Tiếng Lào Nhanh Gấp 3 Lần?</h2>
+        <p class="section-desc">
+          Tiếng Lào và tiếng Việt có sự tương đồng tự nhiên hiếm có mà người nói tiếng Anh không thể có được. Bạn đã nắm sẵn 60% nền tảng!
+        </p>
+      </div>
+
+      <div class="reasons-grid">
+        <div class="reason-card">
+          <div class="reason-icon">🔄</div>
+          <h3 class="reason-title">Cùng Trật Tự Câu 100% (S-V-O)</h3>
+          <p class="reason-text">
+            Ghép từ y hệt tiếng Việt, tính từ đứng sau danh từ. Không cần đảo lộn vị trí câu như tiếng Anh hay tiếng Nhật.
+          </p>
+          <div class="reason-example">
+            <em>"Tôi ăn cơm"</em> &rarr; <strong>Khọi kin khạo</strong><br />
+            <em>"Nước nóng"</em> &rarr; <strong>Nặm họn</strong>
+          </div>
+        </div>
+
+        <div class="reason-card">
+          <div class="reason-icon">⚡</div>
+          <h3 class="reason-title">Động Từ Không Chia Thì</h3>
+          <p class="reason-text">
+            Không có quá khứ, phân từ hay đổi đuôi rắc rối. Muốn nói quá khứ hay tương lai chỉ cần thêm 1 từ chỉ thời gian.
+          </p>
+          <div class="reason-example">
+            Thêm <strong>lẹo</strong> (đã/rồi): <em>Kin lẹo</em> (Ăn rồi)<br />
+            Thêm <strong>xi</strong> (sẽ): <em>Xi pay</em> (Sẽ đi)
+          </div>
+        </div>
+
+        <div class="reason-card">
+          <div class="reason-icon">🎵</div>
+          <h3 class="reason-title">Vần &amp; Thanh Điệu Quen Thuộc</h3>
+          <p class="reason-text">
+            Tiếng Lào có đầy đủ các âm đầu ng, nh, th, t, đ, b, ch và các vần thân thuộc: -ia, -ua, -ưa, -ơi, -ay, -ao.
+          </p>
+          <div class="reason-example">
+            Người Việt phát âm tiếng Lào tự nhiên và chuẩn hơn bất kỳ người nước ngoài nào khác.
+          </div>
+        </div>
+
+        <div class="reason-card">
+          <div class="reason-icon">🎯</div>
+          <h3 class="reason-title">Tránh 5 Bẫy Phát Âm Kinh Điển</h3>
+          <p class="reason-text">
+            Chỉ rõ sự khác biệt giữa âm bật hơi <em>p'h</em> vs <em>f</em>, nguyên âm ngắn dài và thanh điệu chuẩn thủ đô Viêng Chăn.
+          </p>
+          <div class="reason-example">
+            Khắc phục hoàn toàn lỗi nói "lơ lớ" hoặc nhầm lẫn với tiếng Thái.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: 8 Chapters Curriculum Showcase -->
+  <section class="section" id="lo-trinh">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Lộ Trình Toàn Diện</span>
+        <h2 class="section-title">8 Chương Thực Chiến Cho Đời Sống &amp; Công Việc</h2>
+        <p class="section-desc">
+          Từ số 0 đến giao tiếp tự tin: Mua bán, đi xe, gọi món, kết bạn và xử lý tình huống khẩn cấp tại Lào.
+        </p>
+      </div>
+
+      <div class="chapters-grid">
+        <div class="chapter-card free-badge-card">
+          <div class="chapter-header">
+            <span class="chapter-num">Chương 1</span>
+            <span class="free-pill">Học Thử Miễn Phí</span>
+          </div>
+          <h3 class="chapter-name">Âm Thanh Lào &amp; Chào Hỏi Cơ Bản</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Chào hỏi, cảm ơn, xin lỗi, làm quen và mẹo phát âm chuẩn không bị ngọng.
+          </p>
+          <div class="chapter-meta">
+            <span>3 bài học • 35 từ</span>
+            <a href="./Slide-Tuong-Tac/" style="color: var(--primary); font-weight: 700;">Học Ngay &rarr;</a>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="chapter-header">
+            <span class="chapter-num">Chương 2</span>
+          </div>
+          <h3 class="chapter-name">Số Đếm, Thời Gian &amp; Tiền Bạc</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Đếm số hàng triệu Kíp Lào, hỏi giờ giấc, hẹn ngày gặp gỡ.
+          </p>
+          <div class="chapter-meta">
+            <span>3 bài học • 55 từ</span>
+            <span>Audio giọng Viêng Chăn</span>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="chapter-header">
+            <span class="chapter-num">Chương 3</span>
+          </div>
+          <h3 class="chapter-name">Ăn Uống, Gọi Món &amp; Nhà Hàng</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Gọi các món Lào truyền thống (Lạp, Tam Maak Hoong), điều chỉnh cay/ngọt, xin hóa đơn.
+          </p>
+          <div class="chapter-meta">
+            <span>3 bài học • 52 từ</span>
+            <span>Hội thoại quán ăn thực tế</span>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="chapter-header">
+            <span class="chapter-num">Chương 4</span>
+          </div>
+          <h3 class="chapter-name">Di Chuyển, Hỏi Đường &amp; Xe Cộ</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Bắt xe Tuk-tuk, đi xe khách, hỏi đường rẽ trái/phải, đổ xăng và bến xe.
+          </p>
+          <div class="chapter-meta">
+            <span>3 bài học • 48 từ</span>
+            <span>Thực hành sinh tồn</span>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="chapter-header">
+            <span class="chapter-num">Chương 5</span>
+          </div>
+          <h3 class="chapter-name">Mua Sắm &amp; Mặc Cả Tại Chợ</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Khen chê, trả giá, hỏi kích thước, màu sắc và mua quà lưu niệm ở chợ Sáng (Talat Sao).
+          </p>
+          <div class="chapter-meta">
+            <span>4 bài học • 56 từ</span>
+            <span>Chiêu mặc cả khéo léo</span>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="chapter-header">
+            <span class="chapter-num">Chương 6</span>
+          </div>
+          <h3 class="chapter-name">Công Việc, Gia Đình &amp; Sinh Hoạt</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Giới thiệu bản thân, nghề nghiệp, gia đình và giao lưu với đồng nghiệp, đối tác Lào.
+          </p>
+          <div class="chapter-meta">
+            <span>4 bài học • 60 từ</span>
+            <span>Giao tiếp đời sống</span>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="chapter-header">
+            <span class="chapter-num">Chương 7</span>
+          </div>
+          <h3 class="chapter-name">Sức Khỏe, Khách Sạn &amp; Khẩn Cấp</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Nhận phòng khách sạn, mua thuốc đau đầu/bụng, báo sự cố và gọi trợ giúp khẩn cấp.
+          </p>
+          <div class="chapter-meta">
+            <span>4 bài học • 58 từ</span>
+            <span>Sổ tay y tế bỏ túi</span>
+          </div>
+        </div>
+
+        <div class="chapter-card">
+          <div class="chapter-header">
+            <span class="chapter-num">Chương 8</span>
+          </div>
+          <h3 class="chapter-name">Giao Tiếp Tự Nhiên &amp; Nhận Diện Chữ</h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;">
+            Khẩu ngữ người Viêng Chăn hay nói, trợ từ cảm thán và mẹo nhận diện biển hiệu phổ biến.
+          </p>
+          <div class="chapter-meta">
+            <span>3 bài học • 60 từ</span>
+            <span>Đọc biển hiệu Lào cơ bản</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Banner -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="stat-number">8</div>
+          <div class="stat-label">Chương Học Thực Chiến</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">27</div>
+          <div class="stat-label">Bài Học Tinh Gọn</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">424</div>
+          <div class="stat-label">Từ Vựng Chọn Lọc</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">838</div>
+          <div class="stat-label">Audio Giọng Bản Xứ</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">100%</div>
+          <div class="stat-label">Học Offline (PWA)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Modern Learning Tools on PWA App -->
+  <section class="section section-alt" id="tinh-nang">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Công Nghệ Thông Minh</span>
+        <h2 class="section-title">Học Mọi Lúc Mọi Nơi Với Ứng Dụng PWA Hiện Đại</h2>
+        <p class="section-desc">
+          Không cần tải app nặng nề từ kho ứng dụng. Mở ngay trên trình duyệt, cài ra màn hình chính trong 2 giây và sử dụng trọn vẹn cả khi không có mạng.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-icon-box">⚡</div>
+          <div>
+            <h3 class="feature-title">Flashcard Phản Xạ 3 Giây</h3>
+            <p class="feature-desc">
+              Áp dụng nguyên lý Active Recall: Nhìn tiếng Việt &rarr; Bắt não bộ nhớ ra tiếng Lào trong 3 giây &rarr; Lật thẻ nghe đối chiếu giọng chuẩn.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">🎧</div>
+          <div>
+            <h3 class="feature-title">Shadowing Hội Thoại Từng Câu</h3>
+            <p class="feature-desc">
+              Nghe ngắt nghỉ và ngữ điệu tự nhiên của hai nhân vật bản xứ đối đáp trong tình huống thực tế. Có thể tua lại từng câu dễ dàng.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">🎙️</div>
+          <div>
+            <h3 class="feature-title">Tự Ghi Âm So Sánh Giọng</h3>
+            <p class="feature-desc">
+              Thu âm giọng đọc của bạn ngay trên điện thoại và phát lại cạnh audio chuẩn bản xứ để tự chỉnh thanh điệu và âm bật hơi.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">📝</div>
+          <div>
+            <h3 class="feature-title">Kiểm Tra Trắc Nghiệm Tự Chấm</h3>
+            <p class="feature-desc">
+              8 đề kiểm tra cuối chương với bài nghe trắc nghiệm và câu hỏi ngữ cảnh giúp bạn đo lường chính xác mức độ ghi nhớ.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">📴</div>
+          <div>
+            <h3 class="feature-title">Chạy Offline 100% Không Cần 4G</h3>
+            <p class="feature-desc">
+              Lưu toàn bộ dữ liệu và audio về máy với 1 nút bấm. Khi đi máy bay hoặc qua Lào chưa kịp mua SIM vẫn học trơn tru.
+            </p>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <div class="feature-icon-box">🔍</div>
+          <div>
+            <h3 class="feature-title">Từ Điển Bỏ Túi Siêu Tốc (120+ Cụm)</h3>
+            <p class="feature-desc">
+              Tra cứu nhanh nghĩa tiếng Việt, chữ Lào hoặc phiên âm mọi lúc mọi nơi. Nhấp vào từ để nghe phát âm ngay lập tức.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: Pricing & Lifetime Access -->
+  <section class="section" id="bang-gia">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Đăng Ký Khóa Học</span>
+        <h2 class="section-title">Sở Hữu Trọn Đời – Mở Khóa Toàn Diện</h2>
+        <p class="section-desc">
+          Học thử Chương 1 miễn phí trước khi quyết định. Mở khóa một lần duy nhất, không thu phí duy trì hàng tháng.
+        </p>
+      </div>
+
+      <div class="pricing-card">
+        <span class="pricing-badge-popular">Ưu Đãi Ra Mắt Khóa Học</span>
+        
+        <h3 style="font-size: 1.5rem; font-weight: 800; color: #12211b; margin-top: 10px;">
+          Gói Bản Quyền Trọn Đời (Full Access)
+        </h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 4px;">
+          Kích hoạt trực tiếp trên ứng dụng PWA
+        </p>
+
+        <div class="price-value-box">
+          <span class="price-original">690.000đ</span>
+          <span class="price-current">299.000đ</span>
+          <div class="price-note">Thanh toán 1 lần • Sở hữu vĩnh viễn</div>
+        </div>
+
+        <ul class="pricing-benefits">
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>Mở khóa toàn bộ <strong>8 chương thực chiến &amp; 27 bài học</strong></span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>Trọn bộ <strong>838 file audio</strong> giọng chuẩn Viêng Chăn tải về máy học Offline</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>Đăng nhập đồng thời trên <strong>tối đa 3 thiết bị</strong> (Điện thoại, Tablet, Laptop)</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>Tặng kèm <strong>Ebook PDF/EPUB &amp; Trọn bộ Audio Podcast</strong> luyện nghe chủ động</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>Hỗ trợ kỹ thuật &amp; giải đáp thắc mắc 1-1 qua <strong>Bot Telegram &amp; Zalo</strong></span>
+          </li>
+        </ul>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <a href="./Slide-Tuong-Tac/" class="btn btn-primary btn-lg" style="width: 100%;">
+            👉 Vào Học Thử Miễn Phí Ngay
+          </a>
+          <a href="#ho-tro" class="btn btn-gold btn-lg" style="width: 100%;">
+            🔑 Mua Mã Kích Hoạt Qua Zalo / Telegram
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 5: Support Channels (Telegram Bot & Zalo) -->
+  <section class="section section-alt" id="ho-tro">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Kênh Hỗ Trợ 24/7</span>
+        <h2 class="section-title">Hỗ Trợ Học Viên Trực Tiếp &amp; Nhanh Chóng</h2>
+        <p class="section-desc">
+          Bạn cần nhận mã kích hoạt, tư vấn lộ trình học hay gặp khó khăn khi cài app? Hãy nhắn ngay cho chúng tôi qua 2 kênh chính thức dưới đây:
+        </p>
+      </div>
+
+      <div class="support-grid">
+        <!-- Telegram Bot -->
+        <div class="support-card card-tele">
+          <div class="support-icon">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.12.03-1.99 1.27-5.62 3.72-.53.36-1.01.54-1.44.53-.47-.01-1.38-.27-2.06-.49-.83-.27-1.49-.42-1.43-.88.03-.24.37-.49 1.02-.75 3.98-1.73 6.64-2.87 7.97-3.44 3.79-1.61 4.58-1.89 5.09-1.9.11 0 .37.03.53.17.14.12.18.28.2.45-.01.07-.02.21-.04.37z"/>
+            </svg>
+          </div>
+          <h3 class="support-title">Bot Telegram Tự Động</h3>
+          <p class="support-desc">
+            Nhận mã kích hoạt khóa học tự động 24/7. Nhận mini-quiz kiểm tra từ vựng mỗi ngày và tải tài liệu PDF/Audio nhanh chóng.
+          </p>
+          <a href="https://t.me/tuhoctienglao_bot" target="_blank" rel="noopener" class="btn btn-tele" style="width: 100%;">
+            <span>🤖 Chat Với Bot Telegram</span>
+          </a>
+        </div>
+
+        <!-- Zalo Support -->
+        <div class="support-card card-zalo">
+          <div class="support-icon">
+            <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
+              <path d="M24 4C12.95 4 4 12.06 4 22c0 5.68 2.94 10.74 7.63 14.14-.33 2.82-1.61 6.55-1.7 6.78-.14.39.11.8.5.8.14 0 .28-.04.41-.12 3.93-2.39 7.42-4.57 7.72-4.76 1.74.52 3.56.8 5.44.8 11.05 0 20-8.06 20-18S35.05 4 24 4z" fill="currentColor"/>
+              <text x="24" y="27" font-size="14" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="Arial, sans-serif">Zalo</text>
+            </svg>
+          </div>
+          <h3 class="support-title">Tư Vấn Viên Zalo 1-1</h3>
+          <p class="support-desc">
+            Hỗ trợ thanh toán chuyển khoản ngân hàng Việt Nam, hướng dẫn cài đặt PWA trên iPhone/Android và giải đáp thắc mắc phát âm.
+          </p>
+          <a href="https://zalo.me/tuhoctienglao" target="_blank" rel="noopener" class="btn btn-zalo" style="width: 100%;">
+            <span>💬 Nhắn Tin Qua Zalo</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Thắc Mắc Phổ Biến</span>
+        <h2 class="section-title">Câu Hỏi Thường Gặp</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item active">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Tôi chưa biết gì về tiếng Lào có học được không?</span>
+            <span class="faq-toggle-icon">▼</span>
+          </div>
+          <div class="faq-answer">
+            Chắc chắn được! Giáo trình được thiết kế dành riêng cho người bắt đầu từ số 0 (Zero Beginner). Phương pháp tập trung 80% vào nghe và nói thông qua phiên âm Việt hóa chuẩn, giúp bạn giao tiếp được ngay từ tuần đầu mà không phải vật lộn với bảng chữ cái.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Cài app vào điện thoại (PWA) như thế nào?</span>
+            <span class="faq-toggle-icon">▼</span>
+          </div>
+          <div class="faq-answer">
+            Rất đơn giản: Trên iPhone/iPad (Safari), bạn bấm nút <strong>Chia sẻ (Share) &rarr; Thêm vào MH chính (Add to Home Screen)</strong>. Trên Android (Chrome), trình duyệt sẽ hiện thông báo "Cài đặt ứng dụng" hoặc bạn bấm vào menu 3 chấm &rarr; "Cài đặt ứng dụng". Biểu tượng ứng dụng sẽ xuất hiện trên màn hình điện thoại như một app thông thường.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Sau khi mua thì dùng được bao lâu và trên mấy máy?</span>
+            <span class="faq-toggle-icon">▼</span>
+          </div>
+          <div class="faq-answer">
+            Mã bản quyền có giá trị <strong>vĩnh viễn (trọn đời)</strong>. Mỗi tài khoản được liên kết tối đa <strong>3 thiết bị cùng lúc</strong> (ví dụ: 1 điện thoại chính, 1 máy tính bảng và 1 laptop làm việc).
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Làm thế nào để nhận mã kích hoạt?</span>
+            <span class="faq-toggle-icon">▼</span>
+          </div>
+          <div class="faq-answer">
+            Bạn có thể bấm vào nút "Chat Với Bot Telegram" hoặc "Nhắn Tin Qua Zalo" ở trên để được cấp mã kích hoạt tự động sau khi hoàn tất thanh toán. Sau đó mở ứng dụng, nhập Email và Mã kích hoạt để mở toàn bộ 8 chương học.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <h3>🇱🇦 Tự Học Tiếng Lào Cho Người Việt</h3>
+          <p>
+            Chương trình tự học nghe - nói phản xạ 30–60 phút mỗi ngày. Tự tin giao tiếp đời sống, du lịch và công tác tại đất nước Triệu Voi.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Khám Phá</h4>
+          <ul>
+            <li><a href="./Slide-Tuong-Tac/">Vào Ứng Dụng Học</a></li>
+            <li><a href="#lo-trinh">Lộ Trình 8 Chương</a></li>
+            <li><a href="#tinh-nang">Công Nghệ PWA</a></li>
+            <li><a href="#bang-gia">Bảng Giá Khóa Học</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Kênh Hỗ Trợ</h4>
+          <ul>
+            <li><a href="https://t.me/tuhoctienglao_bot" target="_blank" rel="noopener">Bot Telegram 24/7</a></li>
+            <li><a href="https://zalo.me/tuhoctienglao" target="_blank" rel="noopener">Hỗ Trợ Zalo 1-1</a></li>
+            <li><a href="./Slide-Tuong-Tac/">Đăng Nhập Bản Quyền</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Pháp Lý &amp; Bảo Mật</h4>
+          <ul>
+            <li><a href="#" onclick="openLandingPolicy('terms'); return false;">Điều Khoản Dịch Vụ</a></li>
+            <li><a href="#" onclick="openLandingPolicy('privacy'); return false;">Bảo Vệ Dữ Liệu (NĐ 13)</a></li>
+            <li><a href="#" onclick="openLandingPolicy('audio'); return false;">Bảo Mật Giọng Nói</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 Tự Học Tiếng Lào (tuhoctienglao). Mọi quyền được bảo lưu.</div>
+        <div style="color: #6b7280;">Xây dựng với niềm tự hào hữu nghị Việt – Lào 🇻🇳 🇱🇦</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Sticky Bottom Bar for Mobile -->
+  <div class="mobile-bottom-bar">
+    <a href="./Slide-Tuong-Tac/" class="btn btn-primary" style="flex: 1; padding: 10px 14px; font-size: 0.9rem;">
+      🚀 Học Thử Miễn Phí
+    </a>
+    <a href="https://zalo.me/tuhoctienglao" target="_blank" rel="noopener" class="btn btn-zalo btn-sm" style="padding: 10px 14px;" title="Zalo">
+      Zalo
+    </a>
+    <a href="https://t.me/tuhoctienglao_bot" target="_blank" rel="noopener" class="btn btn-tele btn-sm" style="padding: 10px 14px;" title="Telegram">
+      Tele
+    </a>
+  </div>
+
+  <script>
+  <!-- Legal Policy Modal -->
+  <div class="landing-modal-backdrop hidden" id="landingPolicyModal" role="dialog" aria-modal="true">
+    <div class="landing-modal-card">
+      <div class="landing-modal-head">
+        <h3 id="landingPolicyTitle">📜 Điều Khoản &amp; Chính Sách Bảo Mật</h3>
+        <button class="landing-modal-close" onclick="closeLandingPolicy()" aria-label="Đóng">✕</button>
+      </div>
+      <div style="font-size:0.8rem; color:#6b7280; margin-bottom:12px;">
+        Tuân thủ Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân &amp; Quy định Thương mại điện tử Việt Nam
+      </div>
+      <div class="landing-modal-tabs">
+        <button class="landing-modal-tab-btn active" id="tabBtnTerms" onclick="switchLandingPolicyTab('terms')">📋 Điều khoản dịch vụ</button>
+        <button class="landing-modal-tab-btn" id="tabBtnPrivacy" onclick="switchLandingPolicyTab('privacy')">🔒 Bảo vệ dữ liệu (NĐ 13)</button>
+        <button class="landing-modal-tab-btn" id="tabBtnAudio" onclick="switchLandingPolicyTab('audio')">🎙️ Bảo mật giọng nói</button>
+      </div>
+      <div class="landing-modal-body" id="landingPolicyBody">
+        <!-- Content inserted dynamically -->
+      </div>
+      <div class="landing-modal-foot">
+        <button class="btn btn-primary btn-sm" onclick="closeLandingPolicy()">Tôi đã hiểu &amp; Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Policy Modal Content
+    const LANDING_POLICIES = {
+      terms: `
+        <h4>1. Phạm vi &amp; Quyền sở hữu trí tuệ</h4>
+        <p>Toàn bộ nội dung khóa học "Tự Học Nghe – Nói Tiếng Lào Cho Người Việt" (bao gồm 8 chương, 27 bài học, 840 thẻ audio người bản xứ, hệ thống video shadowing, bài kiểm tra) thuộc quyền sở hữu trí tuệ độc quyền của ban phát triển dự án. Nghiêm cấm mọi hành vi trích xuất, sao chép hoặc phân phối lại vì mục đích thương mại.</p>
+        <h4>2. Quy định Mã Bản Quyền (License Key)</h4>
+        <p>Mỗi mã kích hoạt được gắn cố định với 01 địa chỉ email của học viên và được sử dụng đồng bộ trên tối đa 03 thiết bị cá nhân. Hệ thống tự động khóa các mã bản quyền bị chia sẻ công khai trái phép.</p>
+        <h4>3. Phân tầng Gói dịch vụ</h4>
+        <p><strong>Gói Standard:</strong> Mở toàn bộ 8 chương học, audio bản xứ, tính năng tự ghi âm đối chiếu cơ bản.</p>
+        <p><strong>Gói Pro AI Lab:</strong> Toàn quyền Standard + Phòng Luyện Nói AI (so sánh sóng âm, chấm điểm % độ chuẩn xác thanh điệu) và kết nối Bot học tập 1-1.</p>
+      `,
+      privacy: `
+        <h4>1. Tuân thủ Nghị định 13/2023/NĐ-CP</h4>
+        <p>Chúng tôi cam kết bảo vệ dữ liệu cá nhân của người học theo đúng Nghị định 13/2023/NĐ-CP của Chính phủ Việt Nam.</p>
+        <h4>2. Dữ liệu thu thập &amp; Mục đích</h4>
+        <p>Dữ liệu chỉ bao gồm: Email (định danh tài khoản), Mật khẩu (mã hóa scrypt bảo mật), Tiến trình học tập và Bản ghi âm do học viên tự thực hiện.</p>
+        <p>Mục đích duy nhất: Xác thực quyền học tập, đồng bộ tiến độ qua các thiết bị và phân tích phát âm cá nhân.</p>
+        <h4>3. Cam kết Bảo Mật &amp; Quyền người dùng</h4>
+        <p>Tuyệt đối <strong>KHÔNG</strong> bán hoặc chia sẻ thông tin học viên cho bên thứ ba. Học viên có quyền trích xuất hoặc yêu cầu xóa vĩnh viễn dữ liệu tài khoản bất cứ lúc nào.</p>
+      `,
+      audio: `
+        <h4>1. Bảo vệ dữ liệu giọng nói học viên</h4>
+        <p>Bản ghi âm giọng nói của bạn được xử lý an toàn nhằm mục đích so sánh sóng âm và chấm điểm phát âm cho cá nhân bạn.</p>
+        <h4>2. Quyền riêng tư tuyệt đối</h4>
+        <p>Chúng tôi không công khai bản thu của bạn và không sử dụng dữ liệu giọng nói để huấn luyện mô hình AI thương mại công cộng nếu chưa có sự đồng ý riêng.</p>
+      `
+    };
+
+    function openLandingPolicy(tab) {
+      const modal = document.getElementById("landingPolicyModal");
+      if (!modal) return;
+      switchLandingPolicyTab(tab || "terms");
+      modal.classList.remove("hidden");
+    }
+
+    function closeLandingPolicy() {
+      const modal = document.getElementById("landingPolicyModal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function switchLandingPolicyTab(tab) {
+      document.getElementById("tabBtnTerms").classList.toggle("active", tab === "terms");
+      document.getElementById("tabBtnPrivacy").classList.toggle("active", tab === "privacy");
+      document.getElementById("tabBtnAudio").classList.toggle("active", tab === "audio");
+      document.getElementById("landingPolicyBody").innerHTML = LANDING_POLICIES[tab] || LANDING_POLICIES.terms;
+    }
+
+    // Close when clicking outside card
+    document.getElementById("landingPolicyModal")?.addEventListener("click", function(e) {
+      if (e.target === this) closeLandingPolicy();
+    });
+
+    // Toggle Interactive Demo Card
+    let isFlipped = false;
+    function toggleDemoCard() {
+      const reveal = document.getElementById("demoReveal");
+      const hint = document.getElementById("demoCardHint");
+      isFlipped = !isFlipped;
+      if (isFlipped) {
+        reveal.style.opacity = "1";
+        reveal.style.transform = "scale(1.02)";
+        hint.innerHTML = "✅ Phát âm chuẩn: <strong>Xa-bai-đi! Chạu xa-bai-đi bò?</strong> (Bấm để úp lại)";
+      } else {
+        reveal.style.opacity = "0.4";
+        reveal.style.transform = "scale(1)";
+        hint.innerHTML = "👉 Bấm vào thẻ để xem đáp án phát âm";
+      }
+    }
+
+    // Toggle FAQ Accordion
+    function toggleFaq(el) {
+      const item = el.parentElement;
+      const wasActive = item.classList.contains("active");
+      document.querySelectorAll(".faq-item").forEach(i => i.classList.remove("active"));
+      if (!wasActive) {
+        item.classList.add("active");
+      }
+    }
+  </script>
+</body>
+</html>
