@@ -1,0 +1,15 @@
+{
+  "name": "tu-hoc-tieng-lao-web",
+  "version": "1.0.0",
+  "description": "Tự Học Nghe – Nói Tiếng Lào Cho Người Việt (PWA & Auth Server)",
+  "private": true,
+  "main": "Web-Server/server.js",
+  "scripts": {
+    "build": "python3 tools/build_web_dist.py",
+    "start": "node Web-Server/server.js",
+    "test": "node Web-Server/test/server.test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#146c53" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Ứng Dụng Tự Học Nghe – Nói</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <h1><span id="brandFlag">🌐</span> <span id="brandTitle">Tự Học Ngoại Ngữ</span></h1>
+        <p id="brandSubtitle">Nghe – Nói 30–60 phút/ngày</p>
+        <div class="overall-bar">
+          <div class="overall-bar-fill" id="overallProgressBar" style="width: 0%"></div>
+        </div>
+        <div class="overall-meta">
+          <span id="overallUnitsText">0/0 mục xong</span>
+          <span id="overallCardsText">0 thẻ thuộc</span>
+        </div>
+      </div>
+
+      <div class="nav-tools">
+        <button class="btn btn-sm" id="btnShowDict" title="Từ điển sinh tồn &amp; tìm kiếm toàn khóa">🔎 Từ điển</button>
+        <button class="btn btn-sm" id="btnToggleTheme" title="Đổi giao diện Sáng / Tối">🌓 Sáng/Tối</button>
+        <button class="btn btn-sm" id="btnExportProgress" title="Xuất tiến trình học">💾 Lưu</button>
+      </div>
+
+      <div class="pwa-tools">
+        <button class="btn btn-sm hidden" id="btnInstallPwa" title="Cài thành ứng dụng độc lập (PWA)">📲 Cài App</button>
+        <button class="btn btn-sm" id="btnCacheOffline" title="Tải audio về máy để học không cần mạng">📥 Lưu Offline</button>
+        <div class="pwa-status hidden" id="pwaStatus"></div>
+      </div>
+
+      <div class="account-box hidden" id="accountBox"></div>
+
+      <div class="chapter-list" id="chapterNav"></div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn btn-sm mobile-menu-btn" id="btnMobileMenu">☰ Mục lục</button>
+          <h2 class="lesson-title" id="activeTitle">Đang tải giáo trình...</h2>
+        </div>
+
+        <div class="topbar-controls">
+          <div class="mask-group" title="Bật/Tắt che chữ để luyện phản xạ 3 giây">
+            <button class="pill-toggle on" id="toggleTarget">Chữ gốc</button>
+            <button class="pill-toggle on" id="togglePhonetic">Phiên âm</button>
+            <button class="pill-toggle on" id="toggleMeaning">Nghĩa Việt</button>
+          </div>
+
+          <button class="btn btn-sm" id="toggleSlowSpeed" title="Tốc độ đọc 0.75x hoặc 1.0x">⚡ 1.0x</button>
+          <button class="btn btn-sm" id="btnMarkUnitDone">☑ Đánh dấu xong</button>
+        </div>
+      </header>
+
+      <nav class="mode-tabs" id="modeTabs">
+        <button class="mode-tab active" data-mode="slides">🎞️ Trình chiếu Slide</button>
+        <button class="mode-tab" data-mode="vocab">🗂️ Từ vựng &amp; Mẫu câu</button>
+        <button class="mode-tab" data-mode="dialogue">🎧 Hội thoại Shadowing</button>
+        <button class="mode-tab" data-mode="quiz">🎯 Quiz tự chấm</button>
+        <button class="mode-tab" data-mode="practice">⚡ Thực hành 15 phút</button>
+      </nav>
+
+      <section class="workspace" id="workspace">
+        <!-- Rendered dynamically by app.js -->
+      </section>
+    </main>
+  </div>
+
+  <!-- Auth & License Activation Modal -->
+  <div class="modal-backdrop hidden" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="authModalTitle">🔑 Kích Hoạt &amp; Đăng Nhập Khóa Học</h3>
+        <button class="btn btn-sm" id="btnCloseAuthModal" type="button" aria-label="Đóng">✕</button>
+      </div>
+      <div class="modal-sub" id="authModalSub">
+        Bạn đang ở chế độ học thử Chương 1. Đăng nhập hoặc nhập Mã kích hoạt để mở toàn bộ giáo trình &amp; đồng bộ tiến trình học.
+      </div>
+      <div class="modal-tabs" id="authModalTabs">
+        <button class="btn btn-sm btn-primary" type="button" data-auth-tab="activate">🎟️ Kích hoạt mã mới</button>
+        <button class="btn btn-sm" type="button" data-auth-tab="login">👤 Đã có tài khoản</button>
+      </div>
+      <div id="authModalBody"></div>
+    </div>
+  </div>
+
+  <script src="curriculum_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

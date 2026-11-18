@@ -1,0 +1,14 @@
+# Python / macOS / Temp artifacts
+__pycache__/
+*.pyc
+.DS_Store
+.venv-media/
+Cong-Cu-Tao-Audio-Video/.tmp_storyboards/
+Cong-Cu-Tao-Audio-Video/render_video
+
+# Deployable bundle & sensitive runtime auth stores
+dist-web/
+Web-Server/data/
+*.secret
+*.key
+batches/

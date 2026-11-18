@@ -1,0 +1,31 @@
+{
+  "name": "Tự Học Nghe – Nói Tiếng Lào",
+  "short_name": "Tiếng Lào",
+  "description": "Ứng dụng PWA tự học nghe – nói tiếng Lào offline: Flashcard phản xạ 3s, Shadowing hội thoại, tự ghi âm & bài kiểm tra tự chấm điểm.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f4ef",
+  "theme_color": "#146c53",
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

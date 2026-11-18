@@ -1,0 +1,10 @@
+.git
+.DS_Store
+.venv-media
+Media-Video
+Cong-Cu-Tao-Audio-Video
+Ebook
+Export-NotebookLM-Gamma
+Template-Da-Ngon-Ngu
+Web-Server/data/*.secret
+Web-Server/data/*.lock

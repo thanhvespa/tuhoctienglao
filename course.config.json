@@ -1,0 +1,108 @@
+{
+  "course_id": "tu-hoc-tieng-lao",
+  "course_title": "Tự Học Nghe – Nói Tiếng Lào Cho Người Việt",
+  "short_title": "Tự Học Tiếng Lào",
+  "subtitle": "Nghe – Nói 30–60 phút/ngày",
+  "flag_emoji": "🇱🇦",
+  "source_lang": {
+    "code": "vi",
+    "name": "Tiếng Việt"
+  },
+  "target_lang": {
+    "code": "lo",
+    "name": "Tiếng Lào",
+    "script_label": "Chữ Lào",
+    "phonetic_label": "Phiên âm Việt",
+    "meaning_label": "Nghĩa Việt",
+    "is_latin": false,
+    "script_chars": "\\u0E80-\\u0EFF",
+    "script_regex": "[\\u0E80-\\u0EFF]",
+    "script_run_regex": "([\\u0E80-\\u0EFF]+(?:[\\u0E80-\\u0EFF\\s\\u200B]*[\\u0E80-\\u0EFF]+)?)",
+    "tts_keep_pattern": "[^\\u0E80-\\u0EFF0-9\\s\\.\\,\\?\\!\\-]",
+    "forbidden_script_regex": "[\\u0E00-\\u0E7F]",
+    "forbidden_script_name": "Thai",
+    "google_translate_sl": "lo",
+    "google_translate_tl": "vi",
+    "alphabet_headers": ["chữ lào", "âm đọc", "từ quen đã học"]
+  },
+  "tts": {
+    "provider": "edge",
+    "female_voice": "lo-LA-KeomanyNeural",
+    "male_voice": "lo-LA-ChanthavongNeural",
+    "vi_voice": "vi-VN-HoaiMyNeural",
+    "default_rate": "-8%"
+  },
+  "fonts": {
+    "target_family": "Noto Sans Lao",
+    "regular": "assets/fonts/NotoSansLao-Regular.ttf",
+    "bold": "assets/fonts/NotoSansLao-Bold.ttf",
+    "web_regular": "fonts/NotoSansLao-Regular.ttf",
+    "web_bold": "fonts/NotoSansLao-Bold.ttf",
+    "video_font_name": "NotoSansLao-Bold",
+    "video_fallback_font": "HelveticaNeue-Bold",
+    "license_file": "assets/fonts/OFL.txt"
+  },
+  "dialogue_roles": {
+    "female": ["An", "Linh", "Chị", "Cô bán", "Lễ tân", "Dược sĩ", "Phục vụ", "Thu ngân", "A", "Việt"],
+    "male": ["Boun", "Minh", "Som", "Anh Lào", "Bác Lào", "Bạn Lào", "Tài xế", "Bác sĩ", "Người bán", "Nhân viên", "Khách", "Bạn", "B", "Lào"]
+  },
+  "chapters": {
+    "1": "Âm Thanh Lào & Chào Hỏi Cơ Bản",
+    "2": "Số Đếm, Thời Gian & Tiền Bạc",
+    "3": "Ăn Uống, Gọi Món & Nhà Hàng",
+    "4": "Di Chuyển, Hỏi Đường & Phương Tiện",
+    "5": "Mua Sắm & Giao Dịch Hằng Ngày",
+    "6": "Công Việc, Gia Đình & Sinh Hoạt",
+    "7": "Sức Khỏe, Khách Sạn & Tình Huống Khẩn Cấp",
+    "8": "Giao Tiếp Tự Nhiên & Làm Quen Chữ Lào"
+  },
+  "epub": {
+    "output": "Ebook/Tu-Hoc-Nghe-Noi-Tieng-Lao.epub",
+    "title": "Tự Học Nghe – Nói Tiếng Lào Cho Người Việt (Từ Số 0)",
+    "creator": "Chương Trình Tự Học Tiếng Lào",
+    "description": "Giáo trình tự học nghe nói tiếng Lào 30–60 phút/ngày gồm 8 chương, 27 bài học, 8 bài kiểm tra có đáp án và sổ tay sinh tồn 120+ cụm từ.",
+    "uuid_seed": "tu-hoc-nghe-noi-tieng-lao-vi",
+    "intro_titles": {
+      "00": "Tổng Quan & Lộ Trình Học",
+      "02": "Phương Pháp Học & Nguồn Nghe Lào",
+      "01": "Bảng Theo Dõi Tiến Trình & SRS"
+    },
+    "appendix_title": "Phụ Lục: Từ Điển Bỏ Túi Sinh Tồn (120+ Cụm Từ)"
+  },
+  "pwa": {
+    "short_name": "Tiếng Lào",
+    "name": "Tự Học Nghe – Nói Tiếng Lào",
+    "description": "Ứng dụng PWA tự học nghe – nói tiếng Lào offline: Flashcard phản xạ 3s, Shadowing hội thoại, tự ghi âm & bài kiểm tra tự chấm điểm.",
+    "storage_key": "lao_self_study_progress_v1",
+    "theme_storage_key": "lao_theme",
+    "theme_color": "#146c53",
+    "background_color": "#f6f4ef",
+    "export_filename": "tien-trinh-hoc-tieng-lao.json",
+    "dict_placeholder": "Gõ tiếng Việt, phiên âm hoặc chữ Lào (vd: xin chào, bao nhiêu, cà phê, đau đầu)..."
+  },
+  "video": {
+    "intro_tag": "KHÓA TỰ HỌC NGHE – NÓI TIẾNG LÀO",
+    "intro_target_line": "ສະບາຍດີ — ພາສາລາວ",
+    "intro_phonetic": "Nhìn nghĩa tiếng Việt -> Nói thử trong 2 giây -> Nghe đáp án chuẩn",
+    "intro_note": "Video ôn luyện chủ động (Active Recall Flashcards)",
+    "prompt_text": "⏱️ Nghe & thử nói to bằng tiếng Lào...",
+    "width": 1280,
+    "height": 720
+  },
+  "export": {
+    "notebooklm_prompt": "Hãy đóng vai 2 người dẫn chương trình người Việt đang hướng dẫn một bạn mới bắt đầu tự học nghe nói tiếng Lào.\n- Nói chuyện tự nhiên bằng tiếng Việt, giải thích mẹo phát âm (âm bật hơi p'h/kh/th, 6 thanh điệu Viêng Chăn, hạt cuối câu đơ/đè).\n- Đọc rõ từng từ/câu tiếng Lào cốt lõi trong chương, dừng khoảng 2 giây để người nghe nhẩm theo, rồi giải thích nghĩa tiếng Việt.\n- Cuối podcast làm một mini-quiz phản xạ 5 câu hỏi nhanh.",
+    "notebooklm_chat_examples": [
+      "\"Hãy đóng vai người bán hàng ở chợ Viêng Chăn bằng phiên âm Việt + chữ Lào, chờ mình trả lời từng câu dựa theo Chương 5.\"",
+      "\"Kiểm tra mình 10 từ vựng ngẫu nhiên của Chương 3, chỉ đưa tiếng Việt để mình tự phản xạ.\""
+    ],
+    "practice_hint": "Đọc từng tình huống bên dưới, đếm thầm 1 - 2 - 3 rồi nói thật to. Chú ý phát âm rõ âm bật hơi p'h, kh, th và thanh điệu."
+  },
+  "web": {
+    "require_auth": true,
+    "free_chapters": [1],
+    "free_dict_limit": 15,
+    "max_devices_per_user": 3,
+    "price_note": "Mở khóa trọn bộ 8 chương (27 bài, 424 từ, 838 audio offline & 8 đề kiểm tra)",
+    "contact_hint": "Học thử Chương 1 miễn phí. Nhập Email + Mật khẩu + Mã kích hoạt để mở toàn bộ khóa học."
+  }
+}
