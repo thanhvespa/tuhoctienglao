@@ -2480,8 +2480,6 @@
         <a class="btn btn-sm" href="../#bang-gia" title="Xem bảng giá và quyền lợi 2 gói" style="text-decoration:none;">ℹ️ Bảng giá</a>
       </div>
     `;
-      </div>
-    `;
     document.getElementById("btnOpenAuthBox").onclick = () => openAuthModal("activate");
   }
 
