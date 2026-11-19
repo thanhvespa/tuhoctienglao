@@ -18,7 +18,7 @@ const http = require("http");
 
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, "data"));
 const OUTBOX_FILE = path.join(DATA_DIR, "email_outbox.json");
-const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || "https://tuhoctienglao.com").replace(/\/+$/, "");
+const PUBLIC_BASE_URL = String(process.env.PUBLIC_BASE_URL || "https://tuhoctienglao.online").replace(/\/+$/, "");
 
 /** Escape every user-controlled value before it is placed into email HTML. */
 function escapeHtml(value) {
@@ -83,7 +83,7 @@ function logToOutbox(mailRecord) {
 function sendViaResend(apiKey, from, to, subject, htmlText) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
-      from: from || "Tự Học Tiếng Lào <hoc@tuhoctienglao.com>",
+      from: from || "Tự Học Tiếng Lào <hoc@tuhoctienglao.online>",
       to: Array.isArray(to) ? to : [to],
       subject,
       html: htmlText
@@ -134,7 +134,7 @@ function sendViaResend(apiKey, from, to, subject, htmlText) {
 function sendViaBrevo(apiKey, from, to, subject, htmlText) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
-      sender: { name: "Tự Học Tiếng Lào", email: from || "hoc@tuhoctienglao.com" },
+      sender: { name: "Tự Học Tiếng Lào", email: from || "hoc@tuhoctienglao.online" },
       to: (Array.isArray(to) ? to : [to]).map(e => ({ email: e })),
       subject,
       htmlContent: htmlText
@@ -189,7 +189,7 @@ async function sendMail({ to, subject, html, templateId, metadata = {} }) {
 
   const resendKey = process.env.RESEND_API_KEY;
   const brevoKey = process.env.BREVO_API_KEY;
-  const fromEmail = process.env.MAIL_FROM || "hotro@tuhoctienglao.com";
+  const fromEmail = process.env.MAIL_FROM || "hotro@tuhoctienglao.online";
 
   let sendResult = null;
   let providerUsed = "outbox_dev";
@@ -274,7 +274,7 @@ function wrapHtmlEmail({ title, preheader, contentHtml, unsubscribeEmail }) {
     </div>
     <div class="footer">
       <p style="margin: 0 0 8px 0;"><strong>Dự án Tự Học Tiếng Lào Cho Người Việt</strong></p>
-      <p style="margin: 0 0 8px 0;">Trụ sở &amp; Nền tảng học trực tuyến PWA: <a href="https://tuhoctienglao.com">tuhoctienglao.com</a></p>
+      <p style="margin: 0 0 8px 0;">Trụ sở &amp; Nền tảng học trực tuyến PWA: <a href="https://tuhoctienglao.online">tuhoctienglao.online</a></p>
       <p style="margin: 0 0 8px 0; font-size: 11px;">
         Cam kết bảo vệ dữ liệu theo <strong>Nghị định 13/2023/NĐ-CP</strong>. Dữ liệu của bạn được mã hóa an toàn và không bao giờ chia sẻ cho bên thứ ba.
       </p>
@@ -305,7 +305,7 @@ function templateWelcomeLead({ email, name }) {
 
     <p>Để bắt đầu học ngay mà không cần cài đặt phức tạp:</p>
     <div style="text-align: center;">
-      <a href="https://tuhoctienglao.com/Slide-Tuong-Tac/" class="btn">
+      <a href="https://tuhoctienglao.online/Slide-Tuong-Tac/" class="btn">
         👉 Vào Học Thử Chương 1 Miễn Phí
       </a>
     </div>
@@ -353,7 +353,7 @@ function templateDripDay2({ email, name }) {
       <a href="https://t.me/tuhoctienglao_bot?start=quiz" class="btn btn-secondary">
         🎯 Làm Mini-Quiz Trên Telegram Bot
       </a>
-      <a href="https://tuhoctienglao.com/Slide-Tuong-Tac/" class="btn" style="margin-left: 10px;">
+      <a href="https://tuhoctienglao.online/Slide-Tuong-Tac/" class="btn" style="margin-left: 10px;">
         📖 Mở App Ôn Lại Bài 1
       </a>
     </div>
@@ -494,13 +494,13 @@ function templateLicenseKey({ email, name, tier, licenseKey }) {
 
     <h3 style="color: #0d3b66;">👉 3 Bước kích hoạt khóa học trong 30 giây:</h3>
     <ol style="padding-left: 20px; color: #334155; line-height: 1.8;">
-      <li>Truy cập ứng dụng PWA tại: <a href="https://tuhoctienglao.com/Slide-Tuong-Tac/" style="color: #0284c7; font-weight: bold;">tuhoctienglao.com/Slide-Tuong-Tac/</a></li>
+      <li>Truy cập ứng dụng PWA tại: <a href="https://tuhoctienglao.online/Slide-Tuong-Tac/" style="color: #0284c7; font-weight: bold;">tuhoctienglao.online/Slide-Tuong-Tac/</a></li>
       <li>Bấm nút <strong>"🔑 Đăng nhập / Kích hoạt"</strong> ở góc trên bên phải màn hình.</li>
       <li>Nhập Email: <code>${safeEmail}</code>, đặt Mật khẩu của bạn và dán Mã kích hoạt ở trên vào rồi bấm <strong>Kích hoạt</strong>.</li>
     </ol>
 
     <div style="text-align: center; margin: 24px 0;">
-      <a href="https://tuhoctienglao.com/Slide-Tuong-Tac/" class="btn">
+      <a href="https://tuhoctienglao.online/Slide-Tuong-Tac/" class="btn">
         🚀 Bấm Vào Đây Để Kích Hoạt Ngay
       </a>
     </div>

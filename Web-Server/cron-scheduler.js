@@ -119,7 +119,7 @@ async function processTelegramReminders(botToken = process.env.TELEGRAM_BOT_TOKE
         text: reminder.message,
         reply_markup: {
           inline_keyboard: [
-            [{ text: "📖 Mở App Luyện 15 Phút Ngay", url: "https://tuhoctienglao.com/Slide-Tuong-Tac/" }]
+            [{ text: "📖 Mở App Luyện 15 Phút Ngay", url: "https://tuhoctienglao.online/Slide-Tuong-Tac/" }]
           ]
         }
       });

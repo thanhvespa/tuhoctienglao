@@ -38,7 +38,7 @@ const FAQ_DATABASE = [
     id: "faq_license",
     keywords: ["mã", "kích hoạt", "license", "key", "nhập mã", "cách kích hoạt", "đăng ký"],
     question: "Cách kích hoạt mã khóa học như thế nào?",
-    answer: "Sau khi thanh toán, bạn sẽ nhận được mã dạng LAO-STD-XXXX-XXXX (Standard) hoặc LAO-PRO-XXXX-XXXX (Pro). Bạn chỉ cần truy cập app tại https://tuhoctienglao.com/Slide-Tuong-Tac/, bấm '🔑 Đăng nhập / Kích hoạt', điền Email, Mật khẩu và Mã kích hoạt để mở khóa ngay lập tức."
+    answer: "Sau khi thanh toán, bạn sẽ nhận được mã dạng LAO-STD-XXXX-XXXX (Standard) hoặc LAO-PRO-XXXX-XXXX (Pro). Bạn chỉ cần truy cập app tại https://tuhoctienglao.online/Slide-Tuong-Tac/, bấm '🔑 Đăng nhập / Kích hoạt', điền Email, Mật khẩu và Mã kích hoạt để mở khóa ngay lập tức."
   },
   {
     id: "faq_pwa",
@@ -98,7 +98,7 @@ function getDailyReminder() {
     chapter: item.chapter,
     title: item.title,
     goal: item.goal,
-    message: `⏰ [NHẮC LỊCH HỌC 15 PHÚT HÔM NAY]\n📖 ${item.title}\n🎯 Mục tiêu: ${item.goal}\n👉 Mở app luyện ngay: https://tuhoctienglao.com/Slide-Tuong-Tac/`
+    message: `⏰ [NHẮC LỊCH HỌC 15 PHÚT HÔM NAY]\n📖 ${item.title}\n🎯 Mục tiêu: ${item.goal}\n👉 Mở app luyện ngay: https://tuhoctienglao.online/Slide-Tuong-Tac/`
   };
 }
 
@@ -262,7 +262,7 @@ function generateUpsellOffer({ email = "", currentTier = "standard" } = {}) {
           { text: "🚀 Nâng Cấp Bù 200k (Zalo)", url: "https://zalo.me/tuhoctienglao?text=Toi%20muon%20nang%20cap%20PRO%20AI%20Lab%20bu%20200k" }
         ],
         [
-          { text: "📖 Xem Demo AI Lab", url: "https://tuhoctienglao.com/Slide-Tuong-Tac/" }
+          { text: "📖 Xem Demo AI Lab", url: "https://tuhoctienglao.online/Slide-Tuong-Tac/" }
         ]
       ]
     }
@@ -326,7 +326,7 @@ function handleTelegramWebhook(body, store, courseData) {
   const mainKeyboard = {
     inline_keyboard: [
       [
-        { text: "📖 Học thử PWA (Web)", url: "https://tuhoctienglao.com/Slide-Tuong-Tac/" },
+        { text: "📖 Học thử PWA (Web)", url: "https://tuhoctienglao.online/Slide-Tuong-Tac/" },
         { text: "🎯 Mini-Quiz 1 Phút", callback_data: "cmd_quiz" }
       ],
       [
@@ -358,7 +358,7 @@ function handleTelegramWebhook(body, store, courseData) {
       text: rem.message,
       reply_markup: {
         inline_keyboard: [
-          [{ text: "📖 Mở App Luyện 15 Phút Ngay", url: "https://tuhoctienglao.com/Slide-Tuong-Tac/" }]
+          [{ text: "📖 Mở App Luyện 15 Phút Ngay", url: "https://tuhoctienglao.online/Slide-Tuong-Tac/" }]
         ]
       }
     };
@@ -431,7 +431,7 @@ function handleTelegramWebhook(body, store, courseData) {
     return {
       ok: true,
       chat_id: chatId,
-      text: `📜 [CHÍNH SÁCH BẢO MẬT & NGHỊ ĐỊNH 13/2023/NĐ-CP]\n${faq.answer}\n\nXem chi tiết tại: https://tuhoctienglao.com/Slide-Tuong-Tac/`
+      text: `📜 [CHÍNH SÁCH BẢO MẬT & NGHỊ ĐỊNH 13/2023/NĐ-CP]\n${faq.answer}\n\nXem chi tiết tại: https://tuhoctienglao.online/Slide-Tuong-Tac/`
     };
   }
 
@@ -501,7 +501,7 @@ function handleZaloWebhook(body, store, courseData) {
     return {
       error: 0,
       message: "Success",
-      reply: "🇱🇦 Sabaidee! Chào mừng bạn đã theo dõi Tự Học Tiếng Lào!\n\n🎁 Tặng bạn Sổ tay 100 câu tiếng Lào sinh tồn bỏ túi & Học thử miễn phí Chương 1:\n👉 Vào học ngay tại: https://tuhoctienglao.com/Slide-Tuong-Tac/\n\nNếu cần tư vấn khóa học hoặc đăng ký gói Standard/Pro, hãy nhắn ngay cho Ad nhé!"
+      reply: "🇱🇦 Sabaidee! Chào mừng bạn đã theo dõi Tự Học Tiếng Lào!\n\n🎁 Tặng bạn Sổ tay 100 câu tiếng Lào sinh tồn bỏ túi & Học thử miễn phí Chương 1:\n👉 Vào học ngay tại: https://tuhoctienglao.online/Slide-Tuong-Tac/\n\nNếu cần tư vấn khóa học hoặc đăng ký gói Standard/Pro, hãy nhắn ngay cho Ad nhé!"
     };
   }
 
