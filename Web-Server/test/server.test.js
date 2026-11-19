@@ -18,12 +18,27 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
+// crm.js / mailer.js / cron-scheduler.js resolve DATA_DIR when first required:
+// point them at a throwaway directory so tests never touch Web-Server/data.
+const MODULE_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "course-test-modules-"));
+process.env.DATA_DIR = MODULE_DATA_DIR;
+
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
 const srv = require(path.join(PROJECT_ROOT, "Web-Server", "server.js"));
 const CLI = path.join(PROJECT_ROOT, "tools", "license_cli.py");
 
 const SESSION_SECRET = "s".repeat(40);
 const ADMIN_TOKEN = "admin-token-for-tests-0123456789";
+const TG_SECRET = "telegram-webhook-secret-0123456789";
+const ZALO_SECRET = "zalo-oa-secret-key-0123456789abcd";
+const ZALO_APP_ID = "1234567890";
+
+function zaloSigned(event) {
+  const body = { app_id: ZALO_APP_ID, timestamp: String(Date.now()), ...event };
+  const raw = JSON.stringify(body);
+  const mac = crypto.createHash("sha256").update(ZALO_APP_ID + raw + body.timestamp + ZALO_SECRET).digest("hex");
+  return { body, headers: { "x-zevent-signature": `mac=${mac}` } };
+}
 const PASSWORD = "correct-horse-1";
 const FREE_LESSON = "c01_b01";
 const PAID_CARD = "c02_b01_v01";
@@ -37,6 +52,7 @@ function makeTmp(prefix) {
 
 test.after(() => {
   for (const dir of tmpDirs) fs.rmSync(dir, { recursive: true, force: true });
+  fs.rmSync(MODULE_DATA_DIR, { recursive: true, force: true });
 });
 
 function makeFixtureDist() {
@@ -74,7 +90,10 @@ async function startApp(t, overrides = {}) {
     distDir: overrides.distDir || makeFixtureDist(),
     dataDir,
     secret: SESSION_SECRET,
-    adminToken: ADMIN_TOKEN,
+    adminToken: overrides.adminToken ?? ADMIN_TOKEN,
+    telegramWebhookSecret: overrides.telegramWebhookSecret ?? TG_SECRET,
+    zaloOaSecret: overrides.zaloOaSecret ?? ZALO_SECRET,
+    zaloAppId: ZALO_APP_ID,
     trustProxy: overrides.trustProxy ?? 1,
   });
   const server = http.createServer(app.handleRequest);
@@ -569,30 +588,65 @@ test("bot endpoints respond to FAQ, quiz, reminders, and webhooks", async (t) =>
 
   // 4. Telegram Webhook: /start
   const tgStart = await ctx.call("POST", "/api/bot/telegram", {
-    message: { text: "/start" }
-  });
+    message: { text: "/start", chat: { id: 4242 } }
+  }, { "x-telegram-bot-api-secret-token": TG_SECRET });
   assert.equal(tgStart.status, 200);
   assert.match(tgStart.json.text, /Chào bạn! Tôi là Bot Trợ Giảng/);
+  // Webhook replies must name the Bot API method or Telegram sends nothing.
+  assert.equal(tgStart.json.method, "sendMessage");
+  assert.equal(tgStart.json.chat_id, 4242);
+  assert.ok(tgStart.json.reply_markup.inline_keyboard);
 
   // 5. Telegram Webhook: FAQ query
   const tgFaq = await ctx.call("POST", "/api/bot/telegram", {
-    message: { text: "giá gói pro là bao nhiêu" }
-  });
+    message: { text: "giá gói pro là bao nhiêu", chat: { id: 4242 } }
+  }, { "x-telegram-bot-api-secret-token": TG_SECRET });
   assert.equal(tgFaq.status, 200);
   assert.match(tgFaq.json.text, /GÓI PRO AI LAB/);
 
   // 6. Telegram Webhook: /quiz
   const tgQuiz = await ctx.call("POST", "/api/bot/telegram", {
-    message: { text: "/quiz" }
-  });
+    message: { text: "/quiz", chat: { id: 4242 } }
+  }, { "x-telegram-bot-api-secret-token": TG_SECRET });
   assert.equal(tgQuiz.status, 200);
   assert.match(tgQuiz.json.text, /MINI-QUIZ 1 PHÚT/);
 
+  // Quiz buttons are graded against the real answer position.
+  const answerButtons = tgQuiz.json.reply_markup.inline_keyboard[0];
+  const correctIdx = Number(answerButtons[0].callback_data.split("_")[3]);
+  const pick = (idx) =>
+    ctx.call("POST", "/api/bot/telegram", {
+      callback_query: { id: "cbq1", data: answerButtons[idx].callback_data, message: { chat: { id: 4242 } } }
+    }, { "x-telegram-bot-api-secret-token": TG_SECRET });
+  const right = await pick(correctIdx);
+  assert.equal(right.json.method, "answerCallbackQuery");
+  assert.equal(right.json.callback_query_id, "cbq1");
+  assert.match(right.json.text, /Chính xác/);
+  const wrong = await pick((correctIdx + 1) % 4);
+  assert.match(wrong.json.text, /Chưa đúng.*Đáp án đúng là [A-D]/);
+
+  // Menu buttons answer in the chat they were pressed in.
+  for (const [data, pattern] of [["cmd_quiz", /MINI-QUIZ/], ["cmd_upgrade", /200\.000đ/], ["cmd_faq", /CÂU HỎI THƯỜNG GẶP/]]) {
+    const btn = await ctx.call("POST", "/api/bot/telegram", {
+      callback_query: { id: "cbq2", data, message: { chat: { id: 4242 } } }
+    }, { "x-telegram-bot-api-secret-token": TG_SECRET });
+    assert.equal(btn.json.method, "sendMessage", data);
+    assert.equal(btn.json.chat_id, 4242);
+    assert.match(btn.json.text, pattern);
+  }
+
+  // Updates without text (stickers, joins...) get an empty 200 reply.
+  const sticker = await ctx.call("POST", "/api/bot/telegram", { message: { chat: { id: 4242 }, sticker: {} } },
+    { "x-telegram-bot-api-secret-token": TG_SECRET });
+  assert.equal(sticker.status, 200);
+  assert.equal(sticker.json.method, undefined);
+
   // 7. Zalo Webhook
-  const zaloRes = await ctx.call("POST", "/api/bot/zalo", {
+  const zalo = zaloSigned({
     event_name: "user_send_text_message",
     message: { text: "học offline được không" }
   });
+  const zaloRes = await ctx.call("POST", "/api/bot/zalo", zalo.body, zalo.headers);
   assert.equal(zaloRes.status, 200);
   assert.equal(zaloRes.json.error, 0);
   assert.match(zaloRes.json.reply, /Offline/);
@@ -606,8 +660,138 @@ test("bot endpoints respond to FAQ, quiz, reminders, and webhooks", async (t) =>
   assert.equal(checkKey.json.found, true);
   assert.equal(checkKey.json.tier, "pro");
 
+  assert.equal(checkKey.json.email, "bo***@example.test"); // masked, never the full email
+
+  // Email lookups are refused so the endpoint cannot enumerate customers.
   const checkEmail = await ctx.call("POST", "/api/bot/check", { query: "botuser@example.test" });
   assert.equal(checkEmail.status, 200);
-  assert.equal(checkEmail.json.found, true);
-  assert.equal(checkEmail.json.tier, "pro");
+  assert.equal(checkEmail.json.found, false);
+  assert.equal(checkEmail.json.tier, undefined);
+  assert.doesNotMatch(checkEmail.json.message, /PRO VIP|botuser/);
+
+  // Key hints / partial keys no longer match.
+  const partial = await ctx.call("POST", "/api/bot/check", { query: proKey.slice(0, 8) + proKey.slice(-4) });
+  assert.equal(partial.json.found, false);
+});
+
+test("security: admin bot routes fail closed without ADMIN_TOKEN", async (t) => {
+  const ctx = await startApp(t, { adminToken: "" });
+  for (const [method, url] of [
+    ["GET", "/api/bot/leads"],
+    ["POST", "/api/bot/drip/trigger"],
+    ["POST", "/api/bot/remind/trigger"],
+  ]) {
+    const res = await ctx.call(method, url, method === "POST" ? {} : null, { authorization: "Bearer " });
+    assert.equal(res.status, 401, `${method} ${url} must be closed`);
+  }
+});
+
+test("security: admin bot routes require the exact bearer token", async (t) => {
+  const ctx = await startApp(t);
+  const bad = await ctx.call("GET", "/api/bot/leads", null, { authorization: "Bearer wrong-token-0123456789abcd" });
+  assert.equal(bad.status, 401);
+  const none = await ctx.call("GET", "/api/bot/leads");
+  assert.equal(none.status, 401);
+  const ok = await ctx.call("GET", "/api/bot/leads", null, { authorization: `Bearer ${ADMIN_TOKEN}` });
+  assert.equal(ok.status, 200);
+});
+
+test("security: webhooks reject missing or forged secrets", async (t) => {
+  const ctx = await startApp(t);
+  const tgNone = await ctx.call("POST", "/api/bot/telegram", { message: { text: "/start" } });
+  assert.equal(tgNone.status, 401);
+  const tgBad = await ctx.call("POST", "/api/bot/telegram", { message: { text: "/start" } }, { "x-telegram-bot-api-secret-token": "nope" });
+  assert.equal(tgBad.status, 401);
+
+  const zalo = zaloSigned({ event_name: "follow" });
+  const zaloOk = await ctx.call("POST", "/api/bot/zalo", zalo.body, zalo.headers);
+  assert.equal(zaloOk.status, 200);
+  const zaloTampered = await ctx.call("POST", "/api/bot/zalo", { ...zalo.body, event_name: "x" }, zalo.headers);
+  assert.equal(zaloTampered.status, 401);
+  const zaloNone = await ctx.call("POST", "/api/bot/zalo", { event_name: "follow" });
+  assert.equal(zaloNone.status, 401);
+
+  // Unconfigured secrets disable the webhooks entirely.
+  const off = await startApp(t, { telegramWebhookSecret: "", zaloOaSecret: "" });
+  const tgOff = await off.call("POST", "/api/bot/telegram", { message: { text: "/start" } }, { "x-telegram-bot-api-secret-token": "" });
+  assert.equal(tgOff.status, 401);
+});
+
+test("security: lead capture needs consent, blocks cross-site posts, is rate limited and escapes HTML", async (t) => {
+  const ctx = await startApp(t);
+  const ip = { "x-forwarded-for": "203.0.113.50" };
+
+  const noConsent = await ctx.call("POST", "/api/bot/leads", { email: "a@example.test" }, ip);
+  assert.equal(noConsent.status, 400);
+
+  const crossSite = await ctx.call(
+    "POST",
+    "/api/bot/leads",
+    { email: "a@example.test", consent: true },
+    { ...ip, origin: "https://evil.example" }
+  );
+  assert.equal(crossSite.status, 403);
+
+  const evilName = '<a href="https://phish.example">Bấm vào đây</a>';
+  const ok = await ctx.call("POST", "/api/bot/leads", { email: "lead1@example.test", name: evilName, consent: true }, ip);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.json.lead, undefined); // no lead record echoed back
+
+  await new Promise((r) => setTimeout(r, 50)); // let the background welcome mail land in the outbox
+  const mailer = require("../mailer");
+  const outbox = JSON.parse(fs.readFileSync(mailer.OUTBOX_FILE, "utf8")).outbox;
+  assert.ok(outbox.some((m) => m.to === "lead1@example.test"));
+  const html = mailer.templateWelcomeLead({ email: "lead1@example.test", name: evilName }).html;
+  assert.ok(!html.includes('<a href="https://phish.example">'));
+  assert.ok(html.includes("&lt;a href=&quot;https://phish.example&quot;&gt;"));
+
+  // Re-submitting the same address does not send a second welcome mail.
+  await ctx.call("POST", "/api/bot/leads", { email: "lead1@example.test", consent: true }, ip);
+  await new Promise((r) => setTimeout(r, 50));
+  const again = JSON.parse(fs.readFileSync(mailer.OUTBOX_FILE, "utf8")).outbox.filter((m) => m.to === "lead1@example.test");
+  assert.equal(again.length, 1);
+
+  // 5 requests per 15 minutes per IP: the 400 and both successful posts above already count.
+  let last;
+  for (let i = 0; i < 5; i++) {
+    last = await ctx.call("POST", "/api/bot/leads", { email: `spam${i}@example.test`, consent: true }, ip);
+  }
+  assert.equal(last.status, 429);
+});
+
+test("security: unsubscribe links are signed and GET does not unsubscribe", async (t) => {
+  const ctx = await startApp(t);
+  const crm = require("../crm");
+  const mailer = require("../mailer");
+  crm.recordLead({ email: "unsub@example.test", source: "test" });
+
+  const url = new URL(mailer.buildUnsubscribeUrl("unsub@example.test"));
+  assert.ok(url.searchParams.get("token"));
+
+  const forged = await ctx.call("GET", `/unsubscribe?email=unsub%40example.test&token=forged`);
+  assert.equal(forged.status, 400);
+
+  const page = await ctx.call("GET", `/unsubscribe${url.search}`);
+  assert.equal(page.status, 200);
+  assert.equal(crm.readLeads().leads.find((l) => l.email === "unsub@example.test").unsubscribed, false);
+
+  const form = new URLSearchParams({ email: "unsub@example.test", token: url.searchParams.get("token") }).toString();
+  const done = await new Promise((resolve, reject) => {
+    const req = http.request(
+      { host: "127.0.0.1", port: ctx.port, path: "/unsubscribe", method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "content-length": Buffer.byteLength(form) } },
+      (res) => { res.resume(); res.on("end", () => resolve(res.statusCode)); }
+    );
+    req.on("error", reject);
+    req.end(form);
+  });
+  assert.equal(done, 200);
+  assert.equal(crm.readLeads().leads.find((l) => l.email === "unsub@example.test").unsubscribed, true);
+});
+
+test("security: CRM and outbox files are owner-only (0600)", () => {
+  const crm = require("../crm");
+  const mailer = require("../mailer");
+  crm.recordLead({ email: "perm@example.test", source: "test" });
+  assert.equal(fs.statSync(crm.LEADS_FILE).mode & 0o777, 0o600);
+  assert.equal(fs.statSync(mailer.OUTBOX_FILE).mode & 0o777, 0o600);
 });

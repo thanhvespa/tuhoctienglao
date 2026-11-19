@@ -19,3 +19,19 @@ services:
         generateValue: true
       - key: LICENSE_SECRET
         generateValue: true
+      # Admin API (/api/admin/*, /api/bot/leads, drip & reminder triggers).
+      # Without it those routes are disabled (fail closed).
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # Pass the same value as secret_token when calling Telegram setWebhook.
+      - key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      # Zalo OA webhook signature verification (from the Zalo developer console).
+      - key: ZALO_APP_ID
+        sync: false
+      - key: ZALO_OA_SECRET_KEY
+        sync: false
+      - key: PUBLIC_BASE_URL
+        value: https://tuhoctienglao.com

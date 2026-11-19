@@ -29,12 +29,17 @@ const http = require("node:http");
 const path = require("node:path");
 const { pipeline } = require("node:stream");
 const botService = require("./bot");
+const crm = require("./crm");
+const mailer = require("./mailer");
+const cronScheduler = require("./cron-scheduler");
 
 const COOKIE_NAME = "course_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_MAX_ATTEMPTS = 15;
 const ACCOUNT_MAX_FAILURES = 10;
+const LEAD_MAX_PER_WINDOW = 5;
+const BOT_CHECK_MAX_PER_WINDOW = 10;
 const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 const MIME_TYPES = {
@@ -51,6 +56,21 @@ const MIME_TYPES = {
   ".mp3": "audio/mpeg",
   ".m4a": "audio/mp4",
 };
+
+function safeEqualString(a, b) {
+  const x = Buffer.from(String(a || ""), "utf8");
+  const y = Buffer.from(String(b || ""), "utf8");
+  return x.length > 0 && x.length === y.length && crypto.timingSafeEqual(x, y);
+}
+
+function escapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 function sanitizeJson(val) {
   if (val === null || typeof val !== "object") return val;
@@ -428,6 +448,20 @@ function createCourseApp(options = {}) {
     }
   }
   const adminToken = options.adminToken ?? (process.env.ADMIN_TOKEN || "");
+  // Webhook secrets. When unset, the webhook endpoints are disabled (fail closed).
+  const telegramWebhookSecret = options.telegramWebhookSecret ?? (process.env.TELEGRAM_WEBHOOK_SECRET || "");
+  const zaloOaSecret = options.zaloOaSecret ?? (process.env.ZALO_OA_SECRET_KEY || "");
+  const zaloAppId = options.zaloAppId ?? (process.env.ZALO_APP_ID || "");
+
+  // Unsubscribe tokens are derived from the license secret (which never
+  // rotates), so links in old emails keep working after a SESSION_SECRET rotation.
+  const signUnsubscribe = (email) =>
+    crypto
+      .createHmac("sha256", licenseSecret)
+      .update("unsubscribe:" + String(email || "").trim().toLowerCase())
+      .digest("base64url")
+      .slice(0, 32);
+  mailer.configureUnsubscribeSigner(signUnsubscribe);
 
   // Number of reverse proxies in front of this server that append to
   // X-Forwarded-For (TRUST_PROXY=1 for one nginx/Caddy, 2 for CDN + nginx...).
@@ -581,6 +615,40 @@ function createCourseApp(options = {}) {
     res.writeHead(status);
     res.end(body);
   };
+
+  const parseJsonText = (text) => {
+    let parsed;
+    try {
+      parsed = text ? JSON.parse(text) : {};
+    } catch (_) {
+      throw Object.assign(new Error("Không đọc được JSON request."), { status: 400 });
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw Object.assign(new Error("Dữ liệu JSON không hợp lệ."), { status: 400 });
+    }
+    return sanitizeJson(parsed);
+  };
+
+  const readRawBody = (req, maxBytes = 65536) =>
+    new Promise((resolve, reject) => {
+      let total = 0;
+      const chunks = [];
+      let aborted = false;
+      req.on("data", (chunk) => {
+        if (aborted) return;
+        total += chunk.length;
+        if (total > maxBytes) {
+          aborted = true;
+          reject(Object.assign(new Error("Payload too large"), { status: 413 }));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      req.on("end", () => {
+        if (!aborted) resolve(Buffer.concat(chunks).toString("utf8"));
+      });
+      req.on("error", () => reject(Object.assign(new Error("Lỗi đọc request."), { status: 400 })));
+    });
 
   const readJsonBody = (req, maxBytes = 65536) =>
     new Promise((resolve, reject) => {
@@ -779,6 +847,56 @@ function createCourseApp(options = {}) {
     return provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
   };
 
+  // Telegram sends the secret configured via setWebhook(secret_token=...) in
+  // the X-Telegram-Bot-Api-Secret-Token header on every update.
+  const isTelegramWebhookAuthorized = (req) =>
+    telegramWebhookSecret.length >= 16 &&
+    safeEqualString(req.headers["x-telegram-bot-api-secret-token"], telegramWebhookSecret);
+
+  // Zalo OA: X-ZEvent-Signature = "mac=" + sha256(appId + rawBody + timestamp + OA secret key).
+  const isZaloWebhookAuthorized = (req, rawBody, body) => {
+    if (zaloOaSecret.length < 16) return false;
+    const appId = String(body.app_id || "");
+    if (!appId || (zaloAppId && appId !== zaloAppId)) return false;
+    const header = String(req.headers["x-zevent-signature"] || "").trim();
+    const provided = header.startsWith("mac=") ? header.slice(4) : header;
+    const expected = crypto
+      .createHash("sha256")
+      .update(appId + rawBody + String(body.timestamp || "") + zaloOaSecret)
+      .digest("hex");
+    return safeEqualString(provided.toLowerCase(), expected);
+  };
+
+  const sendRateLimited = (res, retryAfter) =>
+    sendJson(
+      res,
+      429,
+      { error: `Bạn thao tác quá nhanh. Vui lòng đợi ${retryAfter} giây.` },
+      { "Retry-After": String(retryAfter) }
+    );
+
+  const findLicenseByKey = (rawKey) => {
+    if (normalizeLicenseKey(rawKey).length < 8) return null;
+    const keyHash = hashLicenseKey(rawKey, licenseSecret);
+    const lic = readDbStrict(licensesFile, "licenses").licenses.find((l) =>
+      safeEqualString(l.key_hash, keyHash)
+    );
+    return lic || null;
+  };
+
+  const sendHtmlPage = (res, status, title, bodyHtml) => {
+    applySecurityHeaders(res, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+    res.writeHead(status);
+    res.end(
+      `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+        `<title>${escapeHtml(title)}</title><style>body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;` +
+        `display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:16px}main{max-width:460px;` +
+        `background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:28px}button{background:#0d3b66;color:#fff;` +
+        `border:0;border-radius:8px;padding:12px 20px;font-size:15px;cursor:pointer}</style></head><body><main>` +
+        `<h1 style="font-size:20px;margin-top:0">${escapeHtml(title)}</h1>${bodyHtml}</main></body></html>`
+    );
+  };
+
   const publicUserDto = (ctx) => ({
     email: ctx.user.email,
     display_name: ctx.user.display_name || ctx.user.email.split("@")[0],
@@ -805,21 +923,23 @@ function createCourseApp(options = {}) {
 
       // Enforce CSRF Origin check on mutating API calls (unless bearer-auth admin route or bot webhooks)
       if (pathname.startsWith("/api/") && !["GET", "HEAD", "OPTIONS"].includes(method)) {
-        if (!pathname.startsWith("/api/admin/") && !pathname.startsWith("/api/bot/") && !checkCsrfOrigin(req)) {
+        // Only server-to-server endpoints (authenticated by bearer token or
+        // webhook signature) skip the Origin check. Browser-facing bot routes
+        // such as /api/bot/leads and /api/bot/check keep it.
+        const csrfExempt =
+          pathname.startsWith("/api/admin/") ||
+          pathname === "/api/bot/telegram" ||
+          pathname === "/api/bot/zalo" ||
+          pathname === "/api/bot/drip/trigger" ||
+          pathname === "/api/bot/remind/trigger";
+        if (!csrfExempt && !checkCsrfOrigin(req)) {
           return sendJson(res, 403, { error: "Yêu cầu bị từ chối bởi kiểm tra Origin (CSRF)." });
         }
       }
 
-      const getBotStore = () => {
-        try {
-          return {
-            licenses: readDbStrict(licensesFile, "licenses").licenses || [],
-            users: readDbStrict(usersFile, "users").users || [],
-          };
-        } catch (_) {
-          return { licenses: [], users: [] };
-        }
-      };
+      // Bots only get an exact-key lookup function, never the raw user or
+      // license stores (which contain password hashes and emails).
+      const getBotStore = () => ({ findLicenseByKey });
 
       // ---- BOT ROUTES (TELEGRAM & ZALO) ----
       if (pathname === "/api/bot/faq" && method === "GET") {
@@ -836,6 +956,8 @@ function createCourseApp(options = {}) {
       }
 
       if (pathname === "/api/bot/check" && method === "POST") {
+        const rlCheck = checkRateLimit(getClientIp(req), "botcheck");
+        if (!rlCheck.allowed) return sendRateLimited(res, rlCheck.retryAfter);
         const body = await readJsonBody(req);
         const query = String(body.query || body.license_key || body.email || "").trim();
         const store = getBotStore();
@@ -843,19 +965,152 @@ function createCourseApp(options = {}) {
       }
 
       if (pathname === "/api/bot/telegram" && method === "POST") {
+        if (!isTelegramWebhookAuthorized(req)) {
+          return sendJson(res, 401, { error: "Webhook Telegram không hợp lệ." });
+        }
         const body = await readJsonBody(req);
         const store = getBotStore();
         if (!cachedCurriculum) refreshCurriculumCache();
         const result = botService.handleTelegramWebhook(body, store, cachedCurriculum);
-        return sendJson(res, 200, result);
+        // A button press that opens a message also needs its loading spinner
+        // dismissed; the webhook reply can carry only one method, so that goes
+        // out separately (only possible once TELEGRAM_BOT_TOKEN is set).
+        if (result && result.type === "callback_message" && result.callback_query_id && process.env.TELEGRAM_BOT_TOKEN) {
+          botService
+            .dispatchTelegramOutbound(process.env.TELEGRAM_BOT_TOKEN, "answerCallbackQuery", {
+              callback_query_id: result.callback_query_id,
+            })
+            .catch((err) => console.warn("[telegram] answerCallbackQuery failed:", err.message));
+        }
+        return sendJson(res, 200, botService.toTelegramWebhookReply(result) || {});
       }
 
       if (pathname === "/api/bot/zalo" && method === "POST") {
-        const body = await readJsonBody(req);
+        const rawBody = await readRawBody(req);
+        const body = parseJsonText(rawBody);
+        if (!isZaloWebhookAuthorized(req, rawBody, body)) {
+          return sendJson(res, 401, { error: "Chữ ký webhook Zalo không hợp lệ." });
+        }
         const store = getBotStore();
         if (!cachedCurriculum) refreshCurriculumCache();
         const result = botService.handleZaloWebhook(body, store, cachedCurriculum);
         return sendJson(res, 200, result);
+      }
+
+      if (pathname === "/api/bot/upgrade" && ["GET", "POST"].includes(method)) {
+        const ctx = getAuthenticatedContext(req);
+        const body = method === "POST" ? await readJsonBody(req) : {};
+        const email = (ctx && ctx.user && ctx.user.email) || body.email || "";
+        const currentTier = (ctx && ctx.tier) || body.current_tier || "standard";
+        return sendJson(res, 200, {
+          ok: true,
+          upgrade: botService.generateUpsellOffer({ email, currentTier })
+        });
+      }
+
+      if (pathname === "/api/bot/leads" && method === "POST") {
+        const rlLead = rateStatus(`lead:${getClientIp(req)}`, LEAD_MAX_PER_WINDOW);
+        if (!rlLead.allowed) return sendRateLimited(res, rlLead.retryAfter);
+        rateRecord(`lead:${getClientIp(req)}`);
+
+        const body = await readJsonBody(req, 8192);
+        const email = String(body.email || "").trim().toLowerCase();
+        const name = String(body.name || "").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 80);
+        const phone = String(body.phone || body.phone_zalo || "").replace(/[^0-9+]/g, "").slice(0, 15);
+        const source = String(body.source || "landing_page").replace(/[^a-z0-9_-]/gi, "").slice(0, 40) || "landing_page";
+        const consent = body.consent === true || body.consent === "true";
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 120) {
+          return sendJson(res, 400, { error: "Email không hợp lệ." });
+        }
+        if (!consent) {
+          return sendJson(res, 400, {
+            error: "Bạn cần đồng ý cho phép xử lý dữ liệu cá nhân (Nghị định 13/2023/NĐ-CP) để nhận tài liệu.",
+          });
+        }
+
+        try {
+          const isNewLead = !crm.readLeads().leads.some((l) => l.email === email);
+          const lead = crm.recordLead({ email, name, phone_zalo: phone, source });
+          if (!lead.consent_at) crm.updateLead(email, { consent_at: new Date().toISOString(), consent_version: "1.0" });
+
+          // Only the first signup triggers the welcome mail, so this endpoint
+          // cannot be used to repeatedly mail-bomb an address.
+          if (isNewLead) {
+            const welcomeMail = mailer.templateWelcomeLead({ email, name });
+            mailer
+              .sendMail({
+                to: email,
+                subject: welcomeMail.subject,
+                html: welcomeMail.html,
+                templateId: "welcome",
+                metadata: { lead_id: lead.id },
+              })
+              .then((r) => {
+                if (r && r.ok) crm.updateLead(email, { last_drip_sent_at: new Date().toISOString() });
+              })
+              .catch((err) => console.warn("[CRM] Welcome mail background dispatch error:", err.message));
+          }
+
+          return sendJson(res, 200, {
+            ok: true,
+            message: "Đăng ký nhận tài liệu và học thử thành công! Vui lòng kiểm tra email của bạn.",
+          });
+        } catch (err) {
+          console.error("[CRM] recordLead failed:", err.message);
+          return sendJson(res, 500, { error: "Không lưu được đăng ký, vui lòng thử lại sau." });
+        }
+      }
+
+      if (pathname === "/api/bot/leads" && method === "GET") {
+        if (!isAdminAuthorized(req)) {
+          return sendJson(res, 401, { error: "Yêu cầu quyền quản trị (ADMIN_TOKEN)." });
+        }
+        const leadsData = crm.readLeads();
+        return sendJson(res, 200, { ok: true, total: leadsData.leads.length, leads: leadsData.leads });
+      }
+
+      if (pathname === "/api/bot/drip/trigger" && method === "POST") {
+        if (!isAdminAuthorized(req)) {
+          return sendJson(res, 401, { error: "Yêu cầu quyền quản trị (ADMIN_TOKEN)." });
+        }
+        const result = await cronScheduler.processDripCycle();
+        return sendJson(res, 200, { ok: true, result });
+      }
+
+      if (pathname === "/api/bot/remind/trigger" && method === "POST") {
+        if (!isAdminAuthorized(req)) {
+          return sendJson(res, 401, { error: "Yêu cầu quyền quản trị (ADMIN_TOKEN)." });
+        }
+        const result = await cronScheduler.processTelegramReminders();
+        return sendJson(res, 200, { ok: true, result });
+      }
+
+      // ---- EMAIL UNSUBSCRIBE (signed link, Nghị định 13/2023/NĐ-CP) ----
+      // GET only shows a confirmation form, so mail scanners that prefetch
+      // links cannot unsubscribe people; the POST performs the action.
+      if (pathname === "/unsubscribe" && (method === "GET" || method === "POST")) {
+        let email = parsedUrl.searchParams.get("email") || "";
+        let token = parsedUrl.searchParams.get("token") || "";
+        if (method === "POST") {
+          const form = new URLSearchParams(await readRawBody(req, 4096));
+          email = form.get("email") || email;
+          token = form.get("token") || token;
+        }
+        email = String(email).trim().toLowerCase();
+        if (!email || !safeEqualString(token, signUnsubscribe(email))) {
+          return sendHtmlPage(res, 400, "Liên kết không hợp lệ",
+            "<p>Liên kết hủy đăng ký không hợp lệ hoặc đã bị chỉnh sửa. Vui lòng dùng đúng liên kết trong email.</p>");
+        }
+        if (method === "GET") {
+          return sendHtmlPage(res, 200, "Hủy nhận email",
+            `<p>Bạn muốn ngừng nhận email bài học và ưu đãi gửi tới <strong>${escapeHtml(email)}</strong>?</p>` +
+              `<form method="POST" action="/unsubscribe"><input type="hidden" name="email" value="${escapeHtml(email)}">` +
+              `<input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit">Xác nhận hủy đăng ký</button></form>`);
+        }
+        crm.unsubscribeLead(email);
+        return sendHtmlPage(res, 200, "Đã hủy đăng ký",
+          "<p>Bạn sẽ không nhận thêm email marketing từ chúng tôi. Email liên quan đến tài khoản (mã kích hoạt) vẫn được gửi khi cần.</p>");
       }
 
       // ---- AUTH & COURSE API ROUTES ----
@@ -1008,7 +1263,26 @@ function createCourseApp(options = {}) {
             },
           };
         });
-        if (result.status === 200) rateBuckets.delete(accountKey(email));
+        if (result.status === 200) {
+          rateBuckets.delete(accountKey(email));
+          try {
+            if (result.payload && result.payload.tier) {
+              crm.syncUserTier(email, result.payload.tier);
+              const licMail = mailer.templateLicenseKey({
+                email,
+                name: displayName,
+                tier: result.payload.tier,
+                licenseKey: rawKey
+              });
+              mailer.sendMail({
+                to: email,
+                subject: licMail.subject,
+                html: licMail.html,
+                templateId: "license_delivery"
+              }).catch(() => {});
+            }
+          } catch (_) {}
+        }
 
         const headers = result.cookie
           ? { "Set-Cookie": buildSessionCookieHeader(req, result.cookie, SESSION_TTL_MS / 1000) }
@@ -1087,7 +1361,14 @@ function createCourseApp(options = {}) {
             },
           };
         });
-        if (result.status === 200) rateBuckets.delete(accountKey(email));
+        if (result.status === 200) {
+          rateBuckets.delete(accountKey(email));
+          try {
+            if (result.payload && result.payload.tier) {
+              crm.syncUserTier(email, result.payload.tier);
+            }
+          } catch (_) {}
+        }
 
         const headers = result.cookie
           ? { "Set-Cookie": buildSessionCookieHeader(req, result.cookie, SESSION_TTL_MS / 1000) }
@@ -1150,6 +1431,23 @@ function createCourseApp(options = {}) {
             },
           };
         });
+        if (result.status === 200 && result.payload && ctx.user) {
+          try {
+            crm.syncUserTier(ctx.user.email, result.payload.tier);
+            const licMail = mailer.templateLicenseKey({
+              email: ctx.user.email,
+              name: ctx.user.display_name,
+              tier: result.payload.tier,
+              licenseKey: rawKey
+            });
+            mailer.sendMail({
+              to: ctx.user.email,
+              subject: licMail.subject,
+              html: licMail.html,
+              templateId: "license_upgrade"
+            }).catch(() => {});
+          } catch (_) {}
+        }
         return sendJson(res, result.status, result.payload);
       }
 
@@ -1370,6 +1668,7 @@ if (require.main === module) {
     console.log(`Public dir:    ${app.paths.publicDir}`);
     console.log(`Protected dir: ${app.paths.protectedDir}`);
     console.log(`Auth data dir: ${app.paths.dataDir}`);
+    cronScheduler.startScheduler({ intervalMs: 30 * 60 * 1000 });
   });
 }
 

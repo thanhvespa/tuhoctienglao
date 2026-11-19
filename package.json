@@ -8,7 +8,7 @@
     "build": "python3 tools/build_web_dist.py",
     "postinstall": "python3 tools/build_web_dist.py",
     "start": "node Web-Server/server.js",
-    "test": "node Web-Server/test/server.test.js"
+    "test": "node --test Web-Server/test/"
   },
   "engines": {
     "node": ">=18.0.0"

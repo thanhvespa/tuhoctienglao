@@ -122,6 +122,10 @@ def build_dist_web(out_dir: Path, symlink_media: bool = False) -> None:
     landing_src = ROOT / "Landing-Page" / "index.html"
     if landing_src.exists():
         shutil.copy2(landing_src, public_dir / "index.html")
+        # Landing JS lives in its own file so it runs under CSP `script-src 'self'`.
+        landing_js = ROOT / "Landing-Page" / "landing.js"
+        if landing_js.exists():
+            shutil.copy2(landing_js, public_dir / "landing.js")
     else:
         safe_title = html.escape(str(CFG.get("course_title", "Tự Học Nghe – Nói")), quote=False)
         (public_dir / "index.html").write_text(

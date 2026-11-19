@@ -1354,7 +1354,7 @@
           <span style="font-size: 0.8rem; color: var(--text-muted);">Bấm để lật thẻ</span>
         </div>
 
-        <div class="interactive-flashcard" id="demoCard" onclick="toggleDemoCard()">
+        <div class="interactive-flashcard" id="demoCard" role="button" tabindex="0" aria-pressed="false" aria-controls="demoReveal">
           <div class="flash-step-label">Bước 1: Nhìn nghĩa tiếng Việt &amp; Thử phản xạ</div>
           <div class="flash-vi">"Xin chào! Bạn có khỏe không?"</div>
           
@@ -1731,7 +1731,7 @@
             <a href="./Slide-Tuong-Tac/" class="btn btn-outline" style="width: 100%;">
               👉 Học Thử Miễn Phí (Chương 1)
             </a>
-            <a href="https://zalo.me/tuhoctienglao" target="_blank" rel="noopener" class="btn btn-primary" style="width: 100%;">
+            <a href="https://zalo.me/tuhoctienglao?text=Toi%20muon%20mua%20Goi%20Standard%20299k" target="_blank" rel="noopener" class="btn btn-primary" style="width: 100%;">
               🎟️ Mua Gói Standard (299.000đ)
             </a>
           </div>
@@ -1784,11 +1784,14 @@
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px;">
-            <a href="https://zalo.me/tuhoctienglao" target="_blank" rel="noopener" class="btn btn-gold btn-lg" style="width: 100%; box-shadow: 0 4px 14px rgba(217,119,6,0.35);">
+            <a href="https://zalo.me/tuhoctienglao?text=Toi%20muon%20mua%20Goi%20PRO%20AI%20Lab%20499k" target="_blank" rel="noopener" class="btn btn-gold btn-lg" style="width: 100%; box-shadow: 0 4px 14px rgba(217,119,6,0.35);">
               🚀 Mua Gói PRO AI Lab (499.000đ)
             </a>
-            <a href="https://t.me/tuhoctienglao_bot" target="_blank" rel="noopener" class="btn btn-tele btn-sm" style="width: 100%;">
+            <a href="https://t.me/tuhoctienglao_bot?start=upgrade" target="_blank" rel="noopener" class="btn btn-tele btn-sm" style="width: 100%;">
               Nhận Mã Kích Hoạt Qua Bot Telegram
+            </a>
+            <a href="https://zalo.me/tuhoctienglao?text=Toi%20muon%20nang%20cap%20PRO%20AI%20Lab%20bu%20200k" target="_blank" rel="noopener" style="font-size: 0.84rem; text-align: center; color: #b45309; text-decoration: underline; font-weight: 700; margin-top: 4px;">
+              🔄 Đã mua Gói Standard? Bấm vào đây để BÙ 200.000đ nâng cấp lên PRO
             </a>
           </div>
         </div>
@@ -1856,7 +1859,7 @@
 
       <div class="faq-list">
         <div class="faq-item active">
-          <div class="faq-question" onclick="toggleFaq(this)">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             <span>Tôi chưa biết gì về tiếng Lào có học được không?</span>
             <span class="faq-toggle-icon">▼</span>
           </div>
@@ -1866,7 +1869,7 @@
         </div>
 
         <div class="faq-item">
-          <div class="faq-question" onclick="toggleFaq(this)">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             <span>Cài app vào điện thoại (PWA) như thế nào?</span>
             <span class="faq-toggle-icon">▼</span>
           </div>
@@ -1876,7 +1879,7 @@
         </div>
 
         <div class="faq-item">
-          <div class="faq-question" onclick="toggleFaq(this)">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             <span>Sau khi mua thì dùng được bao lâu và trên mấy máy?</span>
             <span class="faq-toggle-icon">▼</span>
           </div>
@@ -1886,7 +1889,7 @@
         </div>
 
         <div class="faq-item">
-          <div class="faq-question" onclick="toggleFaq(this)">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             <span>Làm thế nào để nhận mã kích hoạt?</span>
             <span class="faq-toggle-icon">▼</span>
           </div>
@@ -1895,6 +1898,45 @@
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Lead Capture Section (Free Ebook & Chapter 1 Trial) -->
+  <section class="section section-alt" id="dang-ky-hoc-thu" style="background: linear-gradient(135deg, #0d3b66, #001e3d); color: #ffffff; padding: 60px 0;">
+    <div class="container" style="max-width: 680px; text-align: center;">
+      <span class="section-tag" style="background: rgba(217,119,6,0.25); color: #f59e0b; border: 1px solid rgba(245,158,11,0.4);">🎁 Quà Tặng Miễn Phí</span>
+      <h2 class="section-title" style="color: #ffffff; margin-top: 12px; font-size: 1.95rem;">Nhận Ngay Sổ Tay 100 Câu Tiếng Lào Sinh Tồn</h2>
+      <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 24px;">
+        Điền email của bạn để nhận ngay file PDF Sổ Tay Bỏ Túi và liên kết mở khóa Chương 1 (Chào hỏi &amp; Giao tiếp sinh tồn). Cam kết bảo mật theo <strong>Nghị định 13/2023/NĐ-CP</strong>.
+      </p>
+
+      <form id="leadCaptureForm" style="background: rgba(255,255,255,0.08); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 24px; text-align: left;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #e2e8f0; margin-bottom: 6px;">Họ và Tên *</label>
+            <input type="text" id="leadName" placeholder="Nguyễn Văn A" style="width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #ffffff; font-size: 0.95rem; box-sizing: border-box;" required>
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #e2e8f0; margin-bottom: 6px;">Số Điện Thoại / Zalo</label>
+            <input type="tel" id="leadPhone" placeholder="09xxxxxxxx" style="width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #ffffff; font-size: 0.95rem; box-sizing: border-box;">
+          </div>
+        </div>
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #e2e8f0; margin-bottom: 6px;">Địa chỉ Email nhận tài liệu *</label>
+          <input type="email" id="leadEmail" placeholder="email@gmail.com" style="width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #ffffff; font-size: 0.95rem; box-sizing: border-box;" required>
+        </div>
+
+        <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 0.82rem; color: #cbd5e1; margin-bottom: 18px; line-height: 1.5; cursor: pointer;">
+          <input type="checkbox" id="leadConsent" required style="margin-top: 3px; width: 16px; height: 16px; flex-shrink: 0;">
+          <span>Tôi đồng ý để Tự Học Tiếng Lào lưu và xử lý họ tên, email, số điện thoại của tôi nhằm gửi tài liệu, bài học và thông tin khóa học, theo Nghị định 13/2023/NĐ-CP. Tôi có thể hủy nhận email bất cứ lúc nào qua liên kết trong email.</span>
+        </label>
+
+        <button type="submit" id="btnSubmitLead" class="btn btn-gold" style="width: 100%; font-size: 1.05rem; padding: 14px; font-weight: 800; border: none; cursor: pointer; border-radius: 8px;">
+          🚀 Nhận Sổ Tay &amp; Mở Khóa Học Thử Ngay
+        </button>
+
+        <div id="leadFormMsg" style="display: none; margin-top: 14px; padding: 12px; border-radius: 6px; font-size: 0.9rem; text-align: center;"></div>
+      </form>
     </div>
   </section>
 
@@ -1931,9 +1973,9 @@
         <div class="footer-col">
           <h4>Pháp Lý &amp; Bảo Mật</h4>
           <ul>
-            <li><a href="#" onclick="openLandingPolicy('terms'); return false;">Điều Khoản Dịch Vụ</a></li>
-            <li><a href="#" onclick="openLandingPolicy('privacy'); return false;">Bảo Vệ Dữ Liệu (NĐ 13)</a></li>
-            <li><a href="#" onclick="openLandingPolicy('audio'); return false;">Bảo Mật Giọng Nói</a></li>
+            <li><a href="#chinh-sach-terms" data-policy-open="terms">Điều Khoản Dịch Vụ</a></li>
+            <li><a href="#chinh-sach-privacy" data-policy-open="privacy">Bảo Vệ Dữ Liệu (NĐ 13)</a></li>
+            <li><a href="#chinh-sach-audio" data-policy-open="audio">Bảo Mật Giọng Nói</a></li>
           </ul>
         </div>
       </div>
@@ -1958,110 +2000,30 @@
     </a>
   </div>
 
-  <script>
   <!-- Legal Policy Modal -->
   <div class="landing-modal-backdrop hidden" id="landingPolicyModal" role="dialog" aria-modal="true">
     <div class="landing-modal-card">
       <div class="landing-modal-head">
         <h3 id="landingPolicyTitle">📜 Điều Khoản &amp; Chính Sách Bảo Mật</h3>
-        <button class="landing-modal-close" onclick="closeLandingPolicy()" aria-label="Đóng">✕</button>
+        <button type="button" class="landing-modal-close" data-policy-close aria-label="Đóng">✕</button>
       </div>
       <div style="font-size:0.8rem; color:#6b7280; margin-bottom:12px;">
         Tuân thủ Nghị định 13/2023/NĐ-CP về Bảo vệ dữ liệu cá nhân &amp; Quy định Thương mại điện tử Việt Nam
       </div>
       <div class="landing-modal-tabs">
-        <button class="landing-modal-tab-btn active" id="tabBtnTerms" onclick="switchLandingPolicyTab('terms')">📋 Điều khoản dịch vụ</button>
-        <button class="landing-modal-tab-btn" id="tabBtnPrivacy" onclick="switchLandingPolicyTab('privacy')">🔒 Bảo vệ dữ liệu (NĐ 13)</button>
-        <button class="landing-modal-tab-btn" id="tabBtnAudio" onclick="switchLandingPolicyTab('audio')">🎙️ Bảo mật giọng nói</button>
+        <button class="landing-modal-tab-btn active" id="tabBtnTerms" type="button" data-policy-tab="terms">📋 Điều khoản dịch vụ</button>
+        <button class="landing-modal-tab-btn" id="tabBtnPrivacy" type="button" data-policy-tab="privacy">🔒 Bảo vệ dữ liệu (NĐ 13)</button>
+        <button class="landing-modal-tab-btn" id="tabBtnAudio" type="button" data-policy-tab="audio">🎙️ Bảo mật giọng nói</button>
       </div>
       <div class="landing-modal-body" id="landingPolicyBody">
         <!-- Content inserted dynamically -->
       </div>
       <div class="landing-modal-foot">
-        <button class="btn btn-primary btn-sm" onclick="closeLandingPolicy()">Tôi đã hiểu &amp; Đóng</button>
+        <button type="button" class="btn btn-primary btn-sm" data-policy-close>Tôi đã hiểu &amp; Đóng</button>
       </div>
     </div>
   </div>
 
-  <script>
-    // Policy Modal Content
-    const LANDING_POLICIES = {
-      terms: `
-        <h4>1. Phạm vi &amp; Quyền sở hữu trí tuệ</h4>
-        <p>Toàn bộ nội dung khóa học "Tự Học Nghe – Nói Tiếng Lào Cho Người Việt" (bao gồm 8 chương, 27 bài học, 840 thẻ audio người bản xứ, hệ thống video shadowing, bài kiểm tra) thuộc quyền sở hữu trí tuệ độc quyền của ban phát triển dự án. Nghiêm cấm mọi hành vi trích xuất, sao chép hoặc phân phối lại vì mục đích thương mại.</p>
-        <h4>2. Quy định Mã Bản Quyền (License Key)</h4>
-        <p>Mỗi mã kích hoạt được gắn cố định với 01 địa chỉ email của học viên và được sử dụng đồng bộ trên tối đa 03 thiết bị cá nhân. Hệ thống tự động khóa các mã bản quyền bị chia sẻ công khai trái phép.</p>
-        <h4>3. Phân tầng Gói dịch vụ</h4>
-        <p><strong>Gói Standard:</strong> Mở toàn bộ 8 chương học, audio bản xứ, tính năng tự ghi âm đối chiếu cơ bản.</p>
-        <p><strong>Gói Pro AI Lab:</strong> Toàn quyền Standard + Phòng Luyện Nói AI (so sánh sóng âm, chấm điểm % độ chuẩn xác thanh điệu) và kết nối Bot học tập 1-1.</p>
-      `,
-      privacy: `
-        <h4>1. Tuân thủ Nghị định 13/2023/NĐ-CP</h4>
-        <p>Chúng tôi cam kết bảo vệ dữ liệu cá nhân của người học theo đúng Nghị định 13/2023/NĐ-CP của Chính phủ Việt Nam.</p>
-        <h4>2. Dữ liệu thu thập &amp; Mục đích</h4>
-        <p>Dữ liệu chỉ bao gồm: Email (định danh tài khoản), Mật khẩu (mã hóa scrypt bảo mật), Tiến trình học tập và Bản ghi âm do học viên tự thực hiện.</p>
-        <p>Mục đích duy nhất: Xác thực quyền học tập, đồng bộ tiến độ qua các thiết bị và phân tích phát âm cá nhân.</p>
-        <h4>3. Cam kết Bảo Mật &amp; Quyền người dùng</h4>
-        <p>Tuyệt đối <strong>KHÔNG</strong> bán hoặc chia sẻ thông tin học viên cho bên thứ ba. Học viên có quyền trích xuất hoặc yêu cầu xóa vĩnh viễn dữ liệu tài khoản bất cứ lúc nào.</p>
-      `,
-      audio: `
-        <h4>1. Bảo vệ dữ liệu giọng nói học viên</h4>
-        <p>Bản ghi âm giọng nói của bạn được xử lý an toàn nhằm mục đích so sánh sóng âm và chấm điểm phát âm cho cá nhân bạn.</p>
-        <h4>2. Quyền riêng tư tuyệt đối</h4>
-        <p>Chúng tôi không công khai bản thu của bạn và không sử dụng dữ liệu giọng nói để huấn luyện mô hình AI thương mại công cộng nếu chưa có sự đồng ý riêng.</p>
-      `
-    };
-
-    function openLandingPolicy(tab) {
-      const modal = document.getElementById("landingPolicyModal");
-      if (!modal) return;
-      switchLandingPolicyTab(tab || "terms");
-      modal.classList.remove("hidden");
-    }
-
-    function closeLandingPolicy() {
-      const modal = document.getElementById("landingPolicyModal");
-      if (modal) modal.classList.add("hidden");
-    }
-
-    function switchLandingPolicyTab(tab) {
-      document.getElementById("tabBtnTerms").classList.toggle("active", tab === "terms");
-      document.getElementById("tabBtnPrivacy").classList.toggle("active", tab === "privacy");
-      document.getElementById("tabBtnAudio").classList.toggle("active", tab === "audio");
-      document.getElementById("landingPolicyBody").innerHTML = LANDING_POLICIES[tab] || LANDING_POLICIES.terms;
-    }
-
-    // Close when clicking outside card
-    document.getElementById("landingPolicyModal")?.addEventListener("click", function(e) {
-      if (e.target === this) closeLandingPolicy();
-    });
-
-    // Toggle Interactive Demo Card
-    let isFlipped = false;
-    function toggleDemoCard() {
-      const reveal = document.getElementById("demoReveal");
-      const hint = document.getElementById("demoCardHint");
-      isFlipped = !isFlipped;
-      if (isFlipped) {
-        reveal.style.opacity = "1";
-        reveal.style.transform = "scale(1.02)";
-        hint.innerHTML = "✅ Phát âm chuẩn: <strong>Xa-bai-đi! Chạu xa-bai-đi bò?</strong> (Bấm để úp lại)";
-      } else {
-        reveal.style.opacity = "0.4";
-        reveal.style.transform = "scale(1)";
-        hint.innerHTML = "👉 Bấm vào thẻ để xem đáp án phát âm";
-      }
-    }
-
-    // Toggle FAQ Accordion
-    function toggleFaq(el) {
-      const item = el.parentElement;
-      const wasActive = item.classList.contains("active");
-      document.querySelectorAll(".faq-item").forEach(i => i.classList.remove("active"));
-      if (!wasActive) {
-        item.classList.add("active");
-      }
-    }
-  </script>
+  <script src="./landing.js" defer></script>
 </body>
 </html>
