@@ -1656,6 +1656,12 @@ if (require.main === module) {
   const host = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
   const port = Number(process.env.PORT || 8787);
   const app = createCourseApp();
+  if (process.env.NODE_ENV === "production" && !process.env.DATA_DIR) {
+    console.warn(
+      "[warn] DATA_DIR chưa đặt: tài khoản, mã kích hoạt và lead đang lưu trong thư mục code " +
+        `(${app.paths.dataDir}) và sẽ MẤT sau mỗi lần deploy. Hãy gắn ổ đĩa lâu dài và đặt DATA_DIR=<mount path>.`
+    );
+  }
   if (process.env.NODE_ENV === "production" && !Number(process.env.TRUST_PROXY || 0)) {
     console.warn(
       "[warn] TRUST_PROXY chưa đặt. Nếu server chạy sau reverse proxy (nginx/Caddy/CDN), mọi người dùng sẽ chung " +
@@ -1668,6 +1674,13 @@ if (require.main === module) {
     console.log(`Public dir:    ${app.paths.publicDir}`);
     console.log(`Protected dir: ${app.paths.protectedDir}`);
     console.log(`Auth data dir: ${app.paths.dataDir}`);
+    try {
+      const probe = path.join(app.paths.dataDir, ".write_probe");
+      fs.writeFileSync(probe, "ok", { mode: 0o600 });
+      fs.unlinkSync(probe);
+    } catch (err) {
+      console.error(`[error] Không ghi được vào DATA_DIR (${app.paths.dataDir}): ${err.message}`);
+    }
     cronScheduler.startScheduler({ intervalMs: 30 * 60 * 1000 });
   });
 }

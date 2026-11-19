@@ -2,11 +2,19 @@ services:
   - type: web
     name: tu-hoc-tieng-lao
     runtime: node
-    plan: free
+    plan: starter
     autoDeploy: true
     buildCommand: python3 tools/build_web_dist.py
     startCommand: node Web-Server/server.js
+    # Persistent disk: users, licenses, progress, leads and email logs survive
+    # deploys and restarts. Everything outside mountPath is wiped on each deploy.
+    disk:
+      name: course-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
+      - key: DATA_DIR
+        value: /var/data
       - key: NODE_ENV
         value: production
       - key: HOST
