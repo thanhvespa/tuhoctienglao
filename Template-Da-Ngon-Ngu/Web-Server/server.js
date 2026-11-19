@@ -897,7 +897,7 @@ function createCourseApp(options = {}) {
 
         if (!consent) {
           return sendJson(res, 400, {
-            error: "Bạn cần đồng ý với Điều khoản dịch vụ và Chính sách bảo vệ dữ liệu cá nhân (theo Nghị định 13/2023/NĐ-CP) để kích hoạt tài khoản.",
+            error: "Bạn cần đồng ý với Điều khoản dịch vụ và Chính sách bảo vệ dữ liệu cá nhân (theo Nghị định 13/2023/NĐ-CP) để kích hoạt tài khoản. (Nếu không thấy ô tích chọn, vui lòng nhấn Ctrl+F5 / Cmd+Shift+R hoặc xóa cache trình duyệt để cập nhật).",
           });
         }
 

@@ -1122,7 +1122,7 @@ html, body {
   font-weight: 600;
 }
 
-.auth-form input {
+.auth-form input:not([type="checkbox"]) {
   padding: 10px 12px;
   border-radius: 9px;
   border: 1px solid var(--border);
@@ -1219,11 +1219,12 @@ html, body {
 }
 
 .auth-policy-label input[type="checkbox"] {
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   margin-top: 2px;
   flex-shrink: 0;
   cursor: pointer;
+  accent-color: var(--primary);
 }
 
 .btn-link-policy {

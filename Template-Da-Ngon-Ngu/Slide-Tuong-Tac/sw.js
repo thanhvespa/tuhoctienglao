@@ -1,5 +1,5 @@
 /* Service Worker for Offline-First Language Study PWA */
-const SHELL_CACHE = "course-shell-v2";
+const SHELL_CACHE = "course-shell-v3";
 const MEDIA_CACHE = "course-media-v2";
 
 const SHELL_ASSETS = [
@@ -104,9 +104,31 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // App shell & fonts: Cache-first with background/network fallback
+  // App shell code (HTML, JS, CSS): Network-first with Cache fallback so updates apply immediately
+  const isShellCode =
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css") ||
+    url.pathname.endsWith("/");
+
+  if (isShellCode) {
+    event.respondWith(
+      fetch(req)
+        .then((networkResp) => {
+          if (networkResp && networkResp.ok && networkResp.status === 200) {
+            const clone = networkResp.clone();
+            caches.open(SHELL_CACHE).then((c) => c.put(req, clone)).catch(() => {});
+          }
+          return networkResp;
+        })
+        .catch(() => caches.match(req, { ignoreSearch: true }))
+    );
+    return;
+  }
+
+  // Static shell assets (images, fonts, manifests): Cache-first with network fallback
   event.respondWith(
-    caches.match(req).then((cached) => {
+    caches.match(req, { ignoreSearch: true }).then((cached) => {
       if (cached) return cached;
       return fetch(req).then((resp) => {
         if (resp && resp.ok && resp.status === 200) {

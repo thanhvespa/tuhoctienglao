@@ -15,7 +15,7 @@
 
   let STORAGE_KEY = PWA_CFG.storage_key || "self_study_progress_v1";
   let THEME_KEY = PWA_CFG.theme_storage_key || "self_study_theme";
-  const SHELL_CACHE_NAME = "course-shell-v2";
+  const SHELL_CACHE_NAME = "course-shell-v3";
   const MEDIA_CACHE_NAME = "course-media-v2";
 
   function hydrateCurriculumData(newData) {
@@ -869,8 +869,11 @@
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("./sw.js")
-        .then(async () => {
+        .then(async (reg) => {
           setPwaStatus("PWA sẵn sàng offline.");
+          if (reg) {
+            reg.update().catch(() => {});
+          }
           if ("caches" in window) {
             try {
               const shellCache = await caches.open(SHELL_CACHE_NAME);
