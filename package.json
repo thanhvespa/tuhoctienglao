@@ -6,6 +6,7 @@
   "main": "Web-Server/server.js",
   "scripts": {
     "build": "python3 tools/build_web_dist.py",
+    "postinstall": "python3 tools/build_web_dist.py",
     "start": "node Web-Server/server.js",
     "test": "node Web-Server/test/server.test.js"
   },

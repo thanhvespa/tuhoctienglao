@@ -3,6 +3,7 @@ services:
     name: tu-hoc-tieng-lao
     runtime: node
     plan: free
+    autoDeploy: true
     buildCommand: python3 tools/build_web_dist.py
     startCommand: node Web-Server/server.js
     envVars:
