@@ -1,5 +1,5 @@
 /* Service Worker for Offline-First Language Study PWA */
-const SHELL_CACHE = "course-shell-v3";
+const SHELL_CACHE = "course-shell-v4";
 const MEDIA_CACHE = "course-media-v2";
 
 const SHELL_ASSETS = [

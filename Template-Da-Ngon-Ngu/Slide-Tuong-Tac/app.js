@@ -370,6 +370,14 @@
   function stopActiveRecording() {
     if (!activeRec) return;
     clearInterval(activeRec.timerId);
+    if (activeRec.watch) {
+      clearInterval(activeRec.watch.intervalId);
+      try {
+        activeRec.watch.src.disconnect();
+      } catch (_) {
+        // Ignore disconnect error
+      }
+    }
     try {
       if (activeRec.recorder && activeRec.recorder.state !== "inactive") {
         activeRec.recorder.stop();
@@ -383,7 +391,79 @@
     activeRec = null;
   }
 
-  async function toggleRecord(recId, onComplete, onError) {
+  function formatRecClock(sec) {
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+  }
+
+  /**
+   * Watch mic level: drives the live level bars and stops the recording
+   * automatically after `silenceMs` of quiet once the learner has spoken.
+   * If nothing is heard at all, it gives up after silenceMs + 3s.
+   */
+  function startSilenceWatch(recId, stream, silenceMs, onNoSpeech) {
+    const actx = getAudioContext();
+    if (!actx || !actx.createMediaStreamSource) return null;
+    let src;
+    try {
+      src = actx.createMediaStreamSource(stream);
+    } catch (_) {
+      return null;
+    }
+    const analyser = actx.createAnalyser();
+    analyser.fftSize = 1024;
+    src.connect(analyser);
+    const buf = new Uint8Array(analyser.fftSize);
+    const startMs = Date.now();
+    let floorSum = 0;
+    let floorN = 0;
+    let heardSpeech = false;
+    let lastLoudMs = startMs;
+    const levels = new Array(15).fill(0);
+
+    const intervalId = setInterval(() => {
+      if (!activeRec || activeRec.recId !== recId) return;
+      analyser.getByteTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) {
+        const v = (buf[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / buf.length);
+      const now = Date.now();
+      // Calibrate background noise over the first ~400ms
+      if (now - startMs < 400) {
+        floorSum += rms;
+        floorN++;
+      }
+      const floor = floorN ? floorSum / floorN : 0;
+      const thresh = Math.max(0.02, floor * 3);
+      if (rms > thresh) {
+        heardSpeech = true;
+        lastLoudMs = now;
+      } else if (rms > thresh * 0.7 && heardSpeech) {
+        lastLoudMs = now;
+      }
+
+      levels.shift();
+      levels.push(Math.min(1, rms / 0.25));
+      document.querySelectorAll(`[data-rec-live="${recId}"] i`).forEach((bar, i) => {
+        bar.style.height = `${Math.round(6 + levels[i] * 34)}px`;
+      });
+
+      const tooLong = now - startMs > 30000;
+      if ((heardSpeech && now - lastLoudMs > silenceMs) || tooLong) {
+        stopActiveRecording();
+      } else if (!heardSpeech && now - startMs > silenceMs + 3000) {
+        onNoSpeech();
+        stopActiveRecording();
+      }
+    }, 80);
+
+    return { src, intervalId };
+  }
+
+  async function toggleRecord(recId, onComplete, onError, opts = {}) {
+    if (opts.autoStopSilenceMs) getAudioContext(); // unlock AudioContext inside the tap (iOS)
     if (activeRec && activeRec.recId === recId) {
       stopActiveRecording();
       return;
@@ -409,12 +489,19 @@
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       const chunks = [];
       const startMs = Date.now();
+      let noSpeech = false;
 
       recorder.ondataavailable = (ev) => {
         if (ev.data && ev.data.size > 0) chunks.push(ev.data);
       };
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        const sameView = getViewSignature() === startSig;
+        if (noSpeech) {
+          if (onComplete && sameView) onComplete();
+          if (onError && sameView) onError("Chưa nghe thấy giọng bạn. Chạm 🎤 rồi đọc to, rõ hơn nhé.");
+          return;
+        }
         if (chunks.length) {
           const old = recordings.get(recId);
           if (old && old.url) URL.revokeObjectURL(old.url);
@@ -423,19 +510,32 @@
           const durationSec = Math.max(1, Math.round((Date.now() - startMs) / 1000));
           const bestScore = old ? old.bestScore || 0 : 0;
           recordings.set(recId, { blob, url, durationSec, assessment: null, bestScore });
+          if (opts.onRecorded && sameView) {
+            opts.onRecorded(recId);
+            return;
+          }
         }
-        if (onComplete && getViewSignature() === startSig) onComplete();
+        if (onComplete && sameView) onComplete();
       };
 
       const timerId = setInterval(() => {
         if (!activeRec || activeRec.recId !== recId) return;
         const sec = Math.floor((Date.now() - startMs) / 1000);
-        const labelEl = document.querySelector(`[data-rec-timer="${recId}"]`);
-        if (labelEl) labelEl.textContent = `⏹ Dừng (${sec}s)`;
+        document.querySelectorAll(`[data-rec-timer="${recId}"]`).forEach((labelEl) => {
+          labelEl.textContent =
+            labelEl.getAttribute("data-rec-fmt") === "listen"
+              ? `Đang nghe… ${formatRecClock(sec)}`
+              : `⏹ Dừng (${sec}s)`;
+        });
       }, 400);
 
-      activeRec = { recId, recorder, stream, chunks, startMs, timerId };
+      activeRec = { recId, recorder, stream, chunks, startMs, timerId, watch: null };
       recorder.start();
+      if (opts.autoStopSilenceMs) {
+        activeRec.watch = startSilenceWatch(recId, stream, opts.autoStopSilenceMs, () => {
+          noSpeech = true;
+        });
+      }
       if (onComplete) onComplete();
     } catch (err) {
       const msg =
@@ -780,6 +880,163 @@
         <div class="rec-error hidden" data-rec-err="${escapeHtml(recId)}"></div>
       </div>
     `;
+  }
+
+  /* ==================== Slide card: Listen → Speak → Score ==================== */
+
+  const ICON_SPEAKER =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>';
+  const ICON_MIC =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg>';
+  const ICON_STOP = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+
+  function renderCardPracticeHtml(recId, audioId) {
+    const isRecording = activeRec && activeRec.recId === recId;
+    const saved = isRecording ? null : recordings.get(recId);
+    const isPro = authState.tier === "pro";
+
+    if (isRecording) {
+      return `
+        <div class="cp" data-rec-box="${escapeHtml(recId)}">
+          <div class="cp-live" data-rec-live="${escapeHtml(recId)}">${"<i></i>".repeat(15)}</div>
+          <div class="cp-acts">
+            <div class="cp-act"><button class="cp-btn cp-spk" disabled aria-label="Nghe mẫu">${ICON_SPEAKER}</button><span>Nghe mẫu</span></div>
+            <div class="cp-act"><button class="cp-btn cp-mic is-rec" data-cp-mic="${escapeHtml(recId)}" aria-label="Dừng thu">${ICON_STOP}</button>
+              <span class="cp-rec-label" data-rec-timer="${escapeHtml(recId)}" data-rec-fmt="listen">Đang nghe… 0:00</span></div>
+          </div>
+          <div class="cp-hint">Im lặng 3 giây sẽ tự dừng</div>
+          <div class="rec-error hidden" data-rec-err="${escapeHtml(recId)}"></div>
+        </div>`;
+    }
+
+    let resultHtml = "";
+    if (saved && saved.assessing) {
+      resultHtml = `<div class="cp-result cp-result-wait">⏳ Đang chấm điểm phát âm…</div>`;
+    } else if (saved && saved.assessment) {
+      const a = saved.assessment;
+      const level = a.overall >= 85 ? "great" : a.overall >= 70 ? "good" : "low";
+      const title = a.overall >= 85 ? "Xuất sắc! 🎉" : a.overall >= 70 ? "Khá tốt! 👍" : "Cần luyện thêm 💪";
+      const r = 30;
+      const circ = 2 * Math.PI * r;
+      const dash = (circ * Math.max(0, Math.min(100, a.overall))) / 100;
+      // Drop the leading emoji and short "Khá tốt!"-style exclamation (the title already says it)
+      const msg = String(a.msg || "")
+        .replace(/^[^\p{L}]+/u, "")
+        .replace(/^[^.!?]{0,20}!\s*/u, "");
+      resultHtml = `
+        <button type="button" class="cp-result cp-${level}" data-cp-detail="${escapeHtml(recId)}" aria-expanded="${saved.showDetail ? "true" : "false"}">
+          <span class="cp-ring">
+            <svg viewBox="0 0 72 72" aria-hidden="true">
+              <circle cx="36" cy="36" r="${r}" class="cp-ring-bg"/>
+              <circle cx="36" cy="36" r="${r}" class="cp-ring-fg" stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" transform="rotate(-90 36 36)"/>
+            </svg>
+            <b>${a.overall}%</b>
+          </span>
+          <span class="cp-result-text">
+            <span class="cp-result-title">${title}</span>
+            <span class="cp-result-msg">${escapeHtml(msg)}</span>
+            <span class="cp-chips"><span>Thanh ${a.tone}%</span><span>Nhịp ${a.rhythm}%</span><span>Rõ ${a.clarity}%</span></span>
+          </span>
+          <span class="cp-chevron">${saved.showDetail ? "▲" : "▼"}</span>
+        </button>
+        <div class="cp-detail ${saved.showDetail ? "" : "hidden"}" data-cp-detail-box="${escapeHtml(recId)}">
+          <canvas class="waveform-canvas" data-waveform-canvas="${escapeHtml(recId)}"></canvas>
+          <div class="waveform-legend">
+            <span class="legend-ref">■ Sóng âm mẫu (bản xứ)</span>
+            <span class="legend-user">■ Sóng âm giọng bạn</span>
+          </div>
+          <div class="cp-best">🏆 Kỷ lục thẻ này: ${saved.bestScore || a.overall}%</div>
+        </div>`;
+    } else if (saved && !isPro) {
+      resultHtml = `
+        <div class="cp-result cp-result-lock">
+          <span>✅ Đã thu xong — bấm ▶ để nghe lại giọng bạn.</span>
+          <button type="button" class="btn btn-sm btn-gold" data-cp-pro>👑 Chấm điểm % (PRO)</button>
+        </div>`;
+    }
+
+    const actsHtml = saved
+      ? `
+        <div class="cp-acts cp-acts-3">
+          <div class="cp-act"><button class="cp-btn cp-spk cp-sm" id="btnSlideAudio" aria-label="Nghe mẫu">${ICON_SPEAKER}</button><span>Mẫu</span></div>
+          <div class="cp-act"><button class="cp-btn cp-mic cp-md" data-cp-mic="${escapeHtml(recId)}" aria-label="Thu lại">${ICON_MIC}</button><span>Thử lại</span></div>
+          <div class="cp-act"><button class="cp-btn cp-me cp-sm" data-cp-me="${escapeHtml(recId)}" aria-label="Nghe giọng bạn">${ICON_PLAY}</button><span>Giọng bạn</span></div>
+        </div>`
+      : `
+        <div class="cp-acts">
+          <div class="cp-act"><button class="cp-btn cp-spk" id="btnSlideAudio" aria-label="Nghe phát âm mẫu">${ICON_SPEAKER}</button><span>Nghe mẫu</span></div>
+          <div class="cp-act"><button class="cp-btn cp-mic" data-cp-mic="${escapeHtml(recId)}" aria-label="Đọc theo">${ICON_MIC}</button><span>Đọc theo</span></div>
+        </div>
+        <div class="cp-hint">Chạm 🎤 để đọc — tự dừng khi bạn im lặng 3 giây</div>`;
+
+    return `
+      <div class="cp" data-rec-box="${escapeHtml(recId)}" data-audio-id="${escapeHtml(audioId || "")}">
+        ${resultHtml}
+        ${actsHtml}
+        <div class="rec-error hidden" data-rec-err="${escapeHtml(recId)}"></div>
+      </div>`;
+  }
+
+  function bindCardPractice(container, recId, audioId, ttsText, onRefresh) {
+    const showErr = (msg) => {
+      const errEl = container.querySelector(`[data-rec-err="${recId}"]`);
+      if (errEl) {
+        errEl.textContent = msg;
+        errEl.classList.remove("hidden");
+      }
+    };
+
+    const micBtn = container.querySelector(`[data-cp-mic="${recId}"]`);
+    if (micBtn) {
+      micBtn.onclick = () => {
+        toggleRecord(recId, onRefresh, showErr, {
+          autoStopSilenceMs: 3000,
+          onRecorded: () => {
+            if (authState.tier === "pro" && audioId) assessPronunciation(recId, audioId, ttsText);
+            else onRefresh();
+          },
+        });
+      };
+    }
+
+    const meBtn = container.querySelector(`[data-cp-me="${recId}"]`);
+    if (meBtn) {
+      meBtn.onclick = () => {
+        const saved = recordings.get(recId);
+        if (!saved || !saved.url) return;
+        stopCurrentAudio();
+        const audio = new Audio(saved.url);
+        currentAudio = audio;
+        audio.play().catch(() => showErr("Không phát được bản thu trên trình duyệt này."));
+      };
+    }
+
+    const proBtn = container.querySelector("[data-cp-pro]");
+    if (proBtn) proBtn.onclick = openProModal;
+
+    const detailBtn = container.querySelector(`[data-cp-detail="${recId}"]`);
+    if (detailBtn) {
+      detailBtn.onclick = () => {
+        const saved = recordings.get(recId);
+        if (!saved) return;
+        saved.showDetail = !saved.showDetail;
+        const box = container.querySelector(`[data-cp-detail-box="${recId}"]`);
+        if (box) box.classList.toggle("hidden", !saved.showDetail);
+        detailBtn.setAttribute("aria-expanded", saved.showDetail ? "true" : "false");
+        const chev = detailBtn.querySelector(".cp-chevron");
+        if (chev) chev.textContent = saved.showDetail ? "▲" : "▼";
+        drawCardWaveform(container, recId);
+      };
+    }
+    drawCardWaveform(container, recId);
+  }
+
+  function drawCardWaveform(container, recId) {
+    const saved = recordings.get(recId);
+    const canvas = container.querySelector(`[data-waveform-canvas="${recId}"]`);
+    if (!saved || !saved.assessment || !saved.showDetail || !canvas) return;
+    requestAnimationFrame(() => drawWaveform(canvas, saved.assessment.refEnv, saved.assessment.userEnv));
   }
 
   function bindRecorderEvents(container, onRefresh) {
@@ -1128,7 +1385,10 @@
     if (unitId) {
       doneBtn.classList.remove("hidden");
       const isDone = !!state.progress.completedUnits[unitId];
-      doneBtn.textContent = isDone ? "✅ Đã hoàn thành" : "☑ Đánh dấu xong";
+      doneBtn.innerHTML = isDone
+        ? '✅<span class="hide-mobile"> Đã hoàn thành</span>'
+        : '☑<span class="hide-mobile"> Đánh dấu xong</span>';
+      doneBtn.title = isDone ? "Đã hoàn thành bài này" : "Đánh dấu xong bài này";
       doneBtn.classList.toggle("btn-primary", isDone);
     } else {
       doneBtn.classList.add("hidden");
@@ -1240,7 +1500,6 @@
       const it = s.item;
       const targetTxt = getTarget(it);
       const ttsTxt = getTts(it);
-      const isLearned = !!state.progress.learnedCards[it.audio_id];
       const recId = `slide_${it.audio_id}`;
       const recallBadge = state.recallAutoMode
         ? `<div class="recall-banner" id="recallCountdown">⏱️ Nghĩ trong 3 giây...</div>`
@@ -1251,14 +1510,7 @@
         <div class="slide-target target-text maskable ${state.showTarget ? "" : "masked"}" data-unmask="1">${escapeHtml(targetTxt)}</div>
         <div class="slide-phonetic maskable ${state.showPhonetic ? "" : "masked"}" data-unmask="1">${escapeHtml(it.phonetic)}</div>
         ${it.note ? `<div class="slide-note">💡 ${escapeHtml(it.note)}</div>` : ""}
-        <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:8px;">
-          <button class="btn btn-primary" id="btnSlideAudio">🔊 Nghe phát âm (R)</button>
-          <a class="btn" href="${translateUrl(ttsTxt)}" target="_blank" rel="noopener noreferrer">🌐 Google Dịch</a>
-          <button class="btn ${isLearned ? "btn-accent" : ""}" id="btnSlideLearned">
-            ${isLearned ? "★ Đã thuộc thẻ này" : "☆ Đánh dấu đã thuộc"}
-          </button>
-        </div>
-        ${renderRecorderHtml(recId, it.audio_id, ttsTxt, "Tự ghi âm kiểm tra")}
+        ${renderCardPracticeHtml(recId, it.audio_id)}
       `;
     } else if (s.type === "dialogue_preview") {
       const linesHtml = s.lines
@@ -1305,7 +1557,6 @@
               <button class="btn btn-sm ${state.recallAutoMode ? "btn-accent" : ""}" id="btnToggleRecallTimer" title="Ẩn chữ & Phiên âm, đếm 3 giây tự bật đáp án">
                 ⏱️ ${state.recallAutoMode ? "Đang bật Phản xạ 3s" : "Luyện Phản xạ 3s"}
               </button>
-              <span>Slide ${state.slideIdx + 1} / ${slides.length}</span>
             </div>
           </div>
           <div class="slide-progress-track">
@@ -1317,10 +1568,11 @@
 
         <div class="slide-footer">
           <div class="slide-nav-btns">
-            <button class="btn" id="btnPrevSlide">← Trước</button>
-            <button class="btn btn-primary" id="btnNextSlide">Tiếp →</button>
+            <button class="btn slide-prev" id="btnPrevSlide" aria-label="Slide trước">←<span class="hide-mobile"> Trước</span></button>
+            <span class="slide-count">${state.slideIdx + 1} / ${slides.length}</span>
+            <button class="btn btn-primary slide-next" id="btnNextSlide">Tiếp →</button>
           </div>
-          <div style="font-size:0.8rem;color:var(--text-muted);">
+          <div class="slide-shortcuts">
             Phím tắt: <b>← / →</b> chuyển slide • <b>Space</b> mở che chữ • <b>R</b> nghe lại
           </div>
         </div>
@@ -1377,15 +1629,10 @@
     if (s.type === "card") {
       const it = s.item;
       const ttsTxt = getTts(it);
-      document.getElementById("btnSlideAudio").onclick = () => playTargetAudio(it.audio_id, ttsTxt);
-      document.getElementById("btnSlideLearned").onclick = () => {
-        state.progress.learnedCards[it.audio_id] = !state.progress.learnedCards[it.audio_id];
-        saveProgress();
-        renderWorkspace();
-      };
+      const audioBtn = document.getElementById("btnSlideAudio");
+      if (audioBtn) audioBtn.onclick = () => playTargetAudio(it.audio_id, ttsTxt);
 
-      bindPlayButtons(ws);
-      bindRecorderEvents(ws, () => renderSlideMode(ws, les));
+      bindCardPractice(ws, `slide_${it.audio_id}`, it.audio_id, ttsTxt, () => renderSlideMode(ws, les));
 
       if (state.recallAutoMode) {
         let sec = 3;

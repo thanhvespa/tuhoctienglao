@@ -1267,3 +1267,361 @@ html, body {
     font-size: 2rem;
   }
 }
+
+/* ==================== Slide card practice: Listen → Speak → Score ==================== */
+.cp {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+.cp-acts {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 44px;
+}
+.cp-acts-3 {
+  gap: 24px;
+  align-items: center;
+}
+.cp-act {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.cp-btn {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border: 3px solid var(--primary);
+  padding: 0;
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.cp-btn svg {
+  width: 40px;
+  height: 40px;
+}
+.cp-btn:active {
+  transform: scale(0.94);
+}
+.cp-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.cp-spk {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(20, 108, 83, 0.25);
+}
+.cp-mic,
+.cp-me {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+.cp-mic.is-rec {
+  background: #d93025;
+  border-color: #d93025;
+  color: #fff;
+  animation: cp-pulse 1.4s ease-out infinite;
+}
+@keyframes cp-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.35); }
+  100% { box-shadow: 0 0 0 22px rgba(217, 48, 37, 0); }
+}
+.cp-md {
+  width: 76px;
+  height: 76px;
+}
+.cp-sm {
+  width: 56px;
+  height: 56px;
+  border-width: 2px;
+}
+.cp-sm svg {
+  width: 26px;
+  height: 26px;
+}
+.cp-rec-label {
+  color: #d93025;
+  font-variant-numeric: tabular-nums;
+}
+.cp-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.cp-live {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 40px;
+}
+.cp-live i {
+  width: 5px;
+  height: 6px;
+  border-radius: 3px;
+  background: #d93025;
+  transition: height 0.08s linear;
+}
+.cp-result {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+}
+button.cp-result {
+  cursor: pointer;
+}
+.cp-result.cp-low {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.cp-result-wait {
+  justify-content: center;
+  font-weight: 700;
+  color: var(--primary);
+}
+.cp-result-lock {
+  flex-wrap: wrap;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.85rem;
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+.cp-ring {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  flex: none;
+}
+.cp-ring svg {
+  width: 68px;
+  height: 68px;
+}
+.cp-ring circle {
+  fill: none;
+  stroke-width: 7;
+}
+.cp-ring-bg { stroke: var(--border); }
+.cp-ring-fg { stroke: var(--primary); stroke-linecap: round; }
+.cp-low .cp-ring-fg { stroke: var(--accent); }
+.cp-ring b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+.cp-low .cp-ring b { color: var(--accent); }
+.cp-result-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cp-result-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.cp-result-msg {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+.cp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.cp-chips span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.cp-chevron {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex: none;
+}
+.cp-detail {
+  width: 100%;
+  background: var(--surface-2);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.cp-best {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: 6px;
+  text-align: center;
+}
+.slide-count {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 56px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.slide-shortcuts {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ==================== Compact phone layout ==================== */
+@media (max-width: 640px) {
+  .hide-mobile,
+  .slide-shortcuts {
+    display: none !important;
+  }
+  .topbar {
+    position: static;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .topbar-left {
+    width: 100%;
+  }
+  .mobile-menu-btn {
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.15rem;
+    padding: 0;
+    flex: none;
+  }
+  .lesson-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.95rem;
+  }
+  .topbar-left .badge-tier {
+    flex: none;
+    margin-left: 0;
+  }
+  .topbar-controls {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .mask-group {
+    flex: 1;
+    min-width: 0;
+  }
+  .pill-toggle {
+    flex: 1;
+    padding: 8px 2px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+  .topbar-controls > .btn-sm {
+    padding: 8px 9px;
+    font-size: 0.8rem;
+    flex: none;
+  }
+  .mode-tabs {
+    padding: 2px 8px 0;
+    gap: 2px;
+    scrollbar-width: none;
+  }
+  .mode-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .mode-tab {
+    padding: 8px 9px;
+    font-size: 0.78rem;
+  }
+  .workspace {
+    padding: 8px 8px 0;
+  }
+  .slide-stage {
+    min-height: 0;
+    padding: 10px 12px 0;
+    border-radius: 16px;
+  }
+  .slide-meta {
+    margin-bottom: 4px;
+  }
+  .slide-progress-track {
+    margin-top: 6px;
+  }
+  .slide-body {
+    gap: 8px;
+    padding: 10px 0 6px;
+  }
+  .slide-vi {
+    font-size: 1.25rem;
+  }
+  .slide-target,
+  .slide-lao {
+    font-size: 2.1rem;
+    line-height: 1.45;
+  }
+  .slide-phonetic {
+    font-size: 1.15rem;
+  }
+  .slide-note {
+    font-size: 0.82rem;
+    padding: 6px 12px;
+  }
+  .cp {
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .slide-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    margin: 4px -12px 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-radius: 0 0 16px 16px;
+    z-index: 5;
+  }
+  .slide-nav-btns {
+    width: 100%;
+  }
+  .slide-prev {
+    width: 56px;
+    height: 52px;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex: none;
+  }
+  .slide-next {
+    flex: 1;
+    height: 52px;
+    justify-content: center;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+}
