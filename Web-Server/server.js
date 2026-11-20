@@ -884,6 +884,63 @@ function createCourseApp(options = {}) {
     return lic || null;
   };
 
+  const issueLicenses = ({ count = 1, tier = "standard", note = "", prefix = null, courseId = null } = {}) => {
+    const isPro = String(tier).toLowerCase() === "pro" || (prefix && String(prefix).toUpperCase().includes("PRO"));
+    const actualTier = isPro ? "pro" : "standard";
+    const tierTag = isPro ? "PRO" : "STD";
+
+    let baseLang =
+      (courseCfg.target_lang && courseCfg.target_lang.code ? String(courseCfg.target_lang.code) : "LAO")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "") || "LAO";
+    if (baseLang === "LO") baseLang = "LAO";
+    const defaultPrefix = `${baseLang}-${tierTag}`;
+    const pfx = prefix ? String(prefix).toUpperCase().replace(/[^A-Z0-9-]/g, "") : defaultPrefix;
+    const cid = String(courseId || getCourseId());
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    return mutateStore(() => {
+      const db = readDbStrict(licensesFile, "licenses");
+      db.secret_fp = licenseFp;
+      const rawKeys = [];
+      for (let i = 0; i < count; i++) {
+        const bytes = crypto.randomBytes(8);
+        let seg = "";
+        for (let j = 0; j < 8; j++) seg += alphabet[bytes[j] % alphabet.length];
+        const rawKey = `${pfx}-${seg.slice(0, 4)}-${seg.slice(4, 8)}`;
+        db.licenses.push({
+          id: "lic_" + crypto.randomBytes(6).toString("hex"),
+          key_hash: hashLicenseKey(rawKey, licenseSecret),
+          hint: `${pfx}-****-${seg.slice(4, 8)}`,
+          tier: actualTier,
+          course_id: cid,
+          note: String(note || "").slice(0, 120),
+          revoked: false,
+          bound_user_id: null,
+          created_at: new Date().toISOString(),
+        });
+        rawKeys.push(rawKey);
+      }
+      writeJsonAtomic(licensesFile, db, { backup: true });
+      return rawKeys;
+    });
+  };
+
+  const getLicenseStats = () => {
+    const db = readDbStrict(licensesFile, "licenses");
+    const lics = db.licenses || [];
+    const total = lics.length;
+    const standard = lics.filter((l) => (l.tier || "standard") === "standard");
+    const pro = lics.filter((l) => l.tier === "pro");
+    const unusedStd = standard.filter((l) => !l.bound_user_id && !l.revoked).length;
+    const unusedPro = pro.filter((l) => !l.bound_user_id && !l.revoked).length;
+    return {
+      total,
+      standard: { total: standard.length, unused: unusedStd },
+      pro: { total: pro.length, unused: unusedPro },
+    };
+  };
+
   const sendHtmlPage = (res, status, title, bodyHtml) => {
     applySecurityHeaders(res, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
     res.writeHead(status);
@@ -937,9 +994,12 @@ function createCourseApp(options = {}) {
         }
       }
 
-      // Bots only get an exact-key lookup function, never the raw user or
-      // license stores (which contain password hashes and emails).
-      const getBotStore = () => ({ findLicenseByKey });
+      // Bots get exact-key lookup, license issue and stats functions
+      const getBotStore = () => ({
+        findLicenseByKey,
+        issueLicenses,
+        getLicenseStats,
+      });
 
       // ---- BOT ROUTES (TELEGRAM & ZALO) ----
       if (pathname === "/api/bot/faq" && method === "GET") {
@@ -982,8 +1042,7 @@ function createCourseApp(options = {}) {
             })
             .catch((err) => console.warn("[telegram] answerCallbackQuery failed:", err.message));
         }
-        // Learner -> admin relay (/ad or a photo): the webhook reply acknowledges
-        // the learner, so the copy to the admin's chat is a separate call.
+        // Learner -> admin relay (/ad, order approval notification, etc.):
         if (result && result.relay && process.env.TELEGRAM_BOT_TOKEN) {
           botService
             .dispatchTelegramOutbound(process.env.TELEGRAM_BOT_TOKEN, result.relay.method, result.relay.payload)
@@ -991,6 +1050,17 @@ function createCourseApp(options = {}) {
               if (r && r.ok === false) console.warn("[telegram] relay to admin rejected:", r.description || r.error);
             })
             .catch((err) => console.warn("[telegram] relay to admin failed:", err.message));
+        }
+        // Extra dispatches (e.g. sending key to learner upon admin approval)
+        if (result && Array.isArray(result.extra_dispatches) && process.env.TELEGRAM_BOT_TOKEN) {
+          for (const d of result.extra_dispatches) {
+            botService
+              .dispatchTelegramOutbound(process.env.TELEGRAM_BOT_TOKEN, d.method, d.payload)
+              .then((r) => {
+                if (r && r.ok === false) console.warn("[telegram] extra dispatch rejected:", r.description || r.error);
+              })
+              .catch((err) => console.warn("[telegram] extra dispatch failed:", err.message));
+          }
         }
         return sendJson(res, 200, botService.toTelegramWebhookReply(result) || {});
       }
@@ -1532,50 +1602,14 @@ function createCourseApp(options = {}) {
         }
         const body = await readJsonBody(req);
         const count = Math.min(200, Math.max(1, Number(body.count || 1)));
-
-        // Support tier: "standard" | "pro"
         const reqTier = String(body.tier || "").toLowerCase();
         const reqPrefix = String(body.prefix || "").toUpperCase();
+        const courseId = body.course_id || getCourseId();
+        const note = body.note || "";
         const isPro = reqTier === "pro" || reqPrefix.includes("PRO");
         const tier = isPro ? "pro" : "standard";
-        const tierTag = isPro ? "PRO" : "STD";
 
-        let baseLang =
-          (courseCfg.target_lang && courseCfg.target_lang.code ? String(courseCfg.target_lang.code) : "LAO")
-            .toUpperCase()
-            .replace(/[^A-Z0-9]/g, "") || "LAO";
-        if (baseLang === "LO") baseLang = "LAO";
-        const defaultPrefix = `${baseLang}-${tierTag}`;
-        const prefix = reqPrefix ? reqPrefix.replace(/[^A-Z0-9-]/g, "") : defaultPrefix;
-        const courseId = String(body.course_id || getCourseId());
-        const note = String(body.note || "").slice(0, 120);
-        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-        const created = mutateStore(() => {
-          const db = readDbStrict(licensesFile, "licenses");
-          db.secret_fp = licenseFp;
-          const rawKeys = [];
-          for (let i = 0; i < count; i++) {
-            const bytes = crypto.randomBytes(8);
-            let seg = "";
-            for (let j = 0; j < 8; j++) seg += alphabet[bytes[j] % alphabet.length];
-            const rawKey = `${prefix}-${seg.slice(0, 4)}-${seg.slice(4, 8)}`;
-            db.licenses.push({
-              id: "lic_" + crypto.randomBytes(6).toString("hex"),
-              key_hash: hashLicenseKey(rawKey, licenseSecret),
-              hint: `${prefix}-****-${seg.slice(4, 8)}`,
-              tier,
-              course_id: courseId,
-              note,
-              revoked: false,
-              bound_user_id: null,
-              created_at: new Date().toISOString(),
-            });
-            rawKeys.push(rawKey);
-          }
-          writeJsonAtomic(licensesFile, db, { backup: true });
-          return rawKeys;
-        });
+        const created = issueLicenses({ count, tier, note, prefix: reqPrefix, courseId });
         return sendJson(res, 200, { count: created.length, tier, keys: created });
       }
 

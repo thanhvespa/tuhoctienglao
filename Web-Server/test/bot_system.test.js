@@ -302,3 +302,106 @@ test("Telegram: /ad relays learner <-> admin when configured", () => {
     if (prevToken === undefined) delete process.env.TELEGRAM_BOT_TOKEN; else process.env.TELEGRAM_BOT_TOKEN = prevToken;
   }
 });
+
+test("Telegram: Admin Key Generation & Customer VietQR 1-Tap Purchase Flow", () => {
+  const prevAdmin = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  process.env.TELEGRAM_ADMIN_CHAT_ID = "999";
+
+  const issued = [];
+  const dummyStore = {
+    findLicenseByKey: () => null,
+    issueLicenses: ({ tier, count, note }) => {
+      const keys = [];
+      for (let i = 0; i < count; i++) {
+        const k = `LAO-${tier === "pro" ? "PRO" : "STD"}-TEST-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+        keys.push(k);
+        issued.push({ key: k, tier, note });
+      }
+      return keys;
+    },
+    getLicenseStats: () => ({
+      total: 10,
+      standard: { total: 6, unused: 4 },
+      pro: { total: 4, unused: 2 }
+    })
+  };
+
+  try {
+    // 1. /admin command authorization
+    const nonAdmin = botService.handleTelegramWebhook({ message: { text: "/admin", chat: { id: 123 }, from: { id: 123 } } }, dummyStore);
+    assert.match(nonAdmin.text, /Quản trị viên/);
+
+    const adminReq = botService.handleTelegramWebhook({ message: { text: "/admin", chat: { id: 999 }, from: { id: 999 } } }, dummyStore);
+    assert.match(adminReq.text, /MENU QUẢN TRỊ/);
+    assert.ok(adminReq.reply_markup && adminReq.reply_markup.inline_keyboard);
+
+    // 2. Admin button clicks to generate keys
+    const genStd = botService.handleTelegramWebhook({
+      callback_query: { id: "cb_admin1", data: "admin_gen_std", message: { chat: { id: 999 } }, from: { id: 999 } }
+    }, dummyStore);
+    assert.match(genStd.text, /LAO-STD-TEST-/);
+    assert.equal(issued.length, 1);
+    assert.equal(issued[0].tier, "standard");
+
+    const genPro = botService.handleTelegramWebhook({
+      callback_query: { id: "cb_admin2", data: "admin_gen_pro", message: { chat: { id: 999 } }, from: { id: 999 } }
+    }, dummyStore);
+    assert.match(genPro.text, /LAO-PRO-TEST-/);
+    assert.equal(issued.length, 2);
+    assert.equal(issued[1].tier, "pro");
+
+    // Admin stats
+    const stats = botService.handleTelegramWebhook({
+      callback_query: { id: "cb_admin3", data: "admin_stats", message: { chat: { id: 999 } }, from: { id: 999 } }
+    }, dummyStore);
+    assert.match(stats.text, /THỐNG KÊ BẢN QUYỀN/);
+    assert.match(stats.text, /Standard: 6/);
+
+    // 3. Customer Buy Flow: /buy
+    const buyMenu = botService.handleTelegramWebhook({ message: { text: "/buy", chat: { id: 111 } } }, dummyStore);
+    assert.match(buyMenu.text, /ĐĂNG KÝ BẢN QUYỀN/);
+    assert.ok(buyMenu.reply_markup);
+
+    // Customer selects PRO
+    const selectPro = botService.handleTelegramWebhook({
+      callback_query: { id: "cb_buy_pro", data: "buy_pro", message: { chat: { id: 111 } }, from: { id: 111 } }
+    }, dummyStore);
+    assert.match(selectPro.text, /499\.000đ/);
+    assert.match(selectPro.text, /THÔNG TIN CHUYỂN KHOẢN/);
+
+    // Customer clicks "I paid"
+    const orderBtn = selectPro.reply_markup.inline_keyboard[0][0];
+    assert.ok(orderBtn.callback_data.startsWith("paid_LAOPRO"));
+    const paidCb = botService.handleTelegramWebhook({
+      callback_query: { id: "cb_paid", data: orderBtn.callback_data, message: { chat: { id: 111 } }, from: { id: 111, first_name: "HocVien" } }
+    }, dummyStore);
+    assert.match(paidCb.text, /ĐÃ GHI NHẬN YÊU CẦU THANH TOÁN/);
+    assert.ok(paidCb.relay);
+    assert.equal(paidCb.relay.payload.chat_id, "999");
+    assert.match(paidCb.relay.payload.text, /ĐƠN HÀNG MỚI CHỜ DUYỆT/);
+
+    // 4. Admin clicks "Approve" button
+    const approveBtn = paidCb.relay.payload.reply_markup.inline_keyboard[0][0];
+    assert.ok(approveBtn.callback_data.startsWith("appr_LAOPRO"));
+    const approveCb = botService.handleTelegramWebhook({
+      callback_query: { id: "cb_appr", data: approveBtn.callback_data, message: { chat: { id: 999 } }, from: { id: 999 } }
+    }, dummyStore);
+    assert.match(approveCb.text, /ĐÃ DUYỆT ĐƠN HÀNG/);
+    assert.ok(Array.isArray(approveCb.extra_dispatches));
+    assert.equal(approveCb.extra_dispatches.length, 1);
+    assert.equal(approveCb.extra_dispatches[0].payload.chat_id, "111");
+    assert.match(approveCb.extra_dispatches[0].payload.text, /MÃ KÍCH HOẠT CỦA BẠN/);
+    assert.match(approveCb.extra_dispatches[0].payload.text, /LAO-PRO-TEST-/);
+
+    // 5. Admin clicks "Reject" button
+    const rejBtn = paidCb.relay.payload.reply_markup.inline_keyboard[1][0];
+    const rejCb = botService.handleTelegramWebhook({
+      callback_query: { id: "cb_rej", data: rejBtn.callback_data, message: { chat: { id: 999 } }, from: { id: 999 } }
+    }, dummyStore);
+    assert.match(rejCb.text, /ĐÃ TỪ CHỐI ĐƠN HÀNG/);
+    assert.equal(rejCb.extra_dispatches[0].payload.chat_id, "111");
+    assert.match(rejCb.extra_dispatches[0].payload.text, /chưa thấy khoản tiền/);
+  } finally {
+    if (prevAdmin === undefined) delete process.env.TELEGRAM_ADMIN_CHAT_ID; else process.env.TELEGRAM_ADMIN_CHAT_ID = prevAdmin;
+  }
+});

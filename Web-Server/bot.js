@@ -374,6 +374,12 @@ function isAdminRelayEnabled() {
   return !!(getAdminChatId() && process.env.TELEGRAM_BOT_TOKEN);
 }
 
+function isAdmin(chatId, fromId) {
+  const adminId = getAdminChatId();
+  if (!adminId) return false;
+  return String(chatId) === adminId || (fromId != null && String(fromId) === adminId);
+}
+
 const CONTACT_ADMIN_BUTTON = { text: "👤 Nhắn trực tiếp cho Ad", callback_data: "cmd_contact_admin" };
 
 function contactAdminInfo(chatId) {
@@ -487,7 +493,241 @@ function handleTelegramWebhook(body, store, courseData) {
       return { ...contactAdminInfo(cbChatId), type: "callback_message", callback_query_id: cb.id };
     }
 
-    const commandForButton = { cmd_quiz: "/quiz", cmd_upgrade: "/upgrade", cmd_faq: "/faq" }[data];
+    // Admin action callbacks
+    if (data.startsWith("admin_")) {
+      const fromId = cb.from ? cb.from.id : null;
+      if (!isAdmin(cbChatId, fromId)) {
+        return {
+          ok: true,
+          type: "callback_answer",
+          callback_query_id: cb.id,
+          text: "⛔ Bạn không có quyền quản trị.",
+          show_alert: true
+        };
+      }
+      if (data === "admin_gen_std") {
+        if (!store || typeof store.issueLicenses !== "function") {
+          return { ok: true, type: "callback_answer", callback_query_id: cb.id, text: "⚠️ Store chưa hỗ trợ tạo mã.", show_alert: true };
+        }
+        const keys = store.issueLicenses({ tier: "standard", count: 1, note: "Admin Telegram" });
+        const key = keys[0];
+        return {
+          ok: true,
+          chat_id: cbChatId,
+          type: "callback_message",
+          callback_query_id: cb.id,
+          text: `✅ [ĐÃ TẠO 1 KEY STANDARD]\n\n🎟️ Gói: Standard (299k)\n🔑 Mã kích hoạt: \`${key}\`\n\n💡 Chạm vào mã để copy gửi khách hàng.`,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🎟️ Tạo thêm Key Standard", callback_data: "admin_gen_std" }],
+              [{ text: "👑 Tạo Key PRO VIP", callback_data: "admin_gen_pro" }],
+              [{ text: "🔙 Menu Quản trị", callback_data: "admin_menu" }]
+            ]
+          }
+        };
+      }
+      if (data === "admin_gen_pro") {
+        if (!store || typeof store.issueLicenses !== "function") {
+          return { ok: true, type: "callback_answer", callback_query_id: cb.id, text: "⚠️ Store chưa hỗ trợ tạo mã.", show_alert: true };
+        }
+        const keys = store.issueLicenses({ tier: "pro", count: 1, note: "Admin Telegram" });
+        const key = keys[0];
+        return {
+          ok: true,
+          chat_id: cbChatId,
+          type: "callback_message",
+          callback_query_id: cb.id,
+          text: `✅ [ĐÃ TẠO 1 KEY PRO VIP]\n\n👑 Gói: PRO AI Lab (499k)\n🔑 Mã kích hoạt: \`${key}\`\n\n💡 Chạm vào mã để copy gửi khách hàng.`,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "👑 Tạo thêm Key PRO", callback_data: "admin_gen_pro" }],
+              [{ text: "🎟️ Tạo Key Standard", callback_data: "admin_gen_std" }],
+              [{ text: "🔙 Menu Quản trị", callback_data: "admin_menu" }]
+            ]
+          }
+        };
+      }
+      if (data === "admin_stats") {
+        const stats = store && typeof store.getLicenseStats === "function" ? store.getLicenseStats() : null;
+        const msg = stats
+          ? `📊 [THỐNG KÊ BẢN QUYỀN]\n• Tổng số mã: ${stats.total}\n• Gói Standard: ${stats.standard.total} (còn trống: ${stats.standard.unused})\n• Gói PRO VIP: ${stats.pro.total} (còn trống: ${stats.pro.unused})`
+          : "📊 Chưa có số liệu thống kê bản quyền.";
+        return {
+          ok: true,
+          chat_id: cbChatId,
+          type: "callback_message",
+          callback_query_id: cb.id,
+          text: msg,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🎟️ Tạo Key Standard", callback_data: "admin_gen_std" }],
+              [{ text: "👑 Tạo Key PRO VIP", callback_data: "admin_gen_pro" }],
+              [{ text: "🔙 Menu Quản trị", callback_data: "admin_menu" }]
+            ]
+          }
+        };
+      }
+      if (data === "admin_menu") {
+        return {
+          ok: true,
+          chat_id: cbChatId,
+          type: "callback_message",
+          callback_query_id: cb.id,
+          text: "🛠️ [MENU QUẢN TRỊ BẢN QUYỀN]\nChào Ad! Vui lòng chọn thao tác bên dưới:",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🎟️ Tạo 1 Key Standard (299k)", callback_data: "admin_gen_std" }],
+              [{ text: "👑 Tạo 1 Key PRO VIP (499k)", callback_data: "admin_gen_pro" }],
+              [{ text: "📊 Thống kê số lượng Key", callback_data: "admin_stats" }]
+            ]
+          }
+        };
+      }
+    }
+
+    // Buy flow buttons
+    if (data === "cmd_buy" && cbChatId != null) {
+      const reply = handleTelegramWebhook(
+        { message: { text: "/buy", chat: { id: cbChatId } } },
+        store,
+        courseData
+      );
+      return { ...reply, type: "callback_message", callback_query_id: cb.id };
+    }
+
+    if ((data === "buy_standard" || data === "buy_pro") && cbChatId != null) {
+      const isPro = data === "buy_pro";
+      const tier = isPro ? "pro" : "standard";
+      const tierName = isPro ? "👑 PRO VIP (Kèm AI Lab)" : "⭐ STANDARD (Tiêu chuẩn)";
+      const amount = isPro ? 499000 : 299000;
+      const orderCode = `LAO${isPro ? "PRO" : "STD"}${Math.floor(1000 + Math.random() * 9000)}`;
+      const qrUrl = generateVietQrUrl({ amount, addInfo: orderCode });
+
+      const text = `💳 [ĐẶT MUA GÓI ${tierName}]\n💰 Số tiền thanh toán: ${amount.toLocaleString("vi-VN")}đ\n\n🏦 THÔNG TIN CHUYỂN KHOẢN (VietQR):\n• Ngân hàng: ${PAYMENT.bankName}\n• Số TK: ${PAYMENT.accountNo}\n• Chủ TK: ${PAYMENT.accountName}\n• Số tiền: ${amount.toLocaleString("vi-VN")}đ\n• Nội dung CK: ${orderCode}\n\n👉 Quét mã QR qua link bên dưới hoặc chuyển khoản đúng nội dung trên.\nSau khi chuyển tiền xong, bạn bấm nút "Tôi đã chuyển khoản xong" bên dưới nhé!`;
+
+      return {
+        ok: true,
+        chat_id: cbChatId,
+        type: "callback_message",
+        callback_query_id: cb.id,
+        text,
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "📸 Tôi đã chuyển khoản xong", callback_data: `paid_${orderCode}_${tier}_${amount}` }],
+            ...(qrUrl ? [[{ text: "🖼️ Mở ảnh mã VietQR", url: qrUrl }]] : []),
+            [CONTACT_ADMIN_BUTTON]
+          ]
+        }
+      };
+    }
+
+    const paidMatch = /^paid_([A-Z0-9]+)_(standard|pro)_(\d+)$/.exec(data);
+    if (paidMatch && cbChatId != null) {
+      const orderCode = paidMatch[1];
+      const tier = paidMatch[2];
+      const amount = Number(paidMatch[3]);
+      const tierName = tier === "pro" ? "PRO AI Lab (499k)" : "Standard (299k)";
+      const senderDesc = describeSender(cb.from, cbChatId);
+
+      const relay = getAdminChatId() ? {
+        method: "sendMessage",
+        payload: {
+          chat_id: getAdminChatId(),
+          text: `🔔 [ĐƠN HÀNG MỚI CHỜ DUYỆT]\n• Khách hàng: ${senderDesc}\n• Đơn hàng: ${orderCode}\n• Gói mua: ${tierName} (${amount.toLocaleString("vi-VN")}đ)\n• Nội dung CK cần kiểm tra: ${orderCode}\n\n👉 Mở app ${PAYMENT.bankName} kiểm tra. Nếu đã nhận tiền, bấm duyệt để cấp key:`,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: `✅ Duyệt & Cấp Key ${tier.toUpperCase()}`, callback_data: `appr_${orderCode}_${tier}_${cbChatId}` }],
+              [{ text: "❌ Hủy đơn", callback_data: `rej_${orderCode}_${cbChatId}` }]
+            ]
+          }
+        }
+      } : null;
+
+      return {
+        ok: true,
+        chat_id: cbChatId,
+        type: "callback_message",
+        callback_query_id: cb.id,
+        relay,
+        text: `✅ [ĐÃ GHI NHẬN YÊU CẦU THANH TOÁN]\n\nCảm ơn bạn! Đơn hàng ${orderCode} (${tierName}) đã được chuyển đến Admin.\nAdmin đang kiểm tra giao dịch và sẽ duyệt cấp mã kích hoạt trực tiếp tại đây cho bạn trong vài phút nhé!`
+      };
+    }
+
+    const apprMatch = /^appr_([A-Z0-9]+)_(standard|pro)_(-?\d+)$/.exec(data);
+    if (apprMatch && cbChatId != null) {
+      const fromId = cb.from ? cb.from.id : null;
+      if (!isAdmin(cbChatId, fromId)) {
+        return {
+          ok: true,
+          type: "callback_answer",
+          callback_query_id: cb.id,
+          text: "⛔ Bạn không có quyền duyệt đơn.",
+          show_alert: true
+        };
+      }
+      const orderCode = apprMatch[1];
+      const tier = apprMatch[2];
+      const customerChatId = apprMatch[3];
+      const tierName = tier === "pro" ? "GÓI PRO AI LAB (499k)" : "GÓI STANDARD (299k)";
+
+      let key = "ERROR_KEY";
+      if (store && typeof store.issueLicenses === "function") {
+        const keys = store.issueLicenses({ tier, count: 1, note: `Don ${orderCode} - TG ${customerChatId}` });
+        key = keys[0];
+      }
+
+      const customerMessage = {
+        method: "sendMessage",
+        payload: {
+          chat_id: customerChatId,
+          text: `🎉 CHÚC MỪNG BẠN ĐÃ MỞ KHÓA THÀNH CÔNG!\nAdmin đã xác nhận thanh toán cho đơn hàng ${orderCode} (${tierName}).\n\n🔑 MÃ KÍCH HOẠT CỦA BẠN:\n\`${key}\`\n\n📖 HƯỚNG DẪN KÍCH HOẠT:\n1. Mở ứng dụng PWA: https://tuhoctienglao.online/Slide-Tuong-Tac/\n2. Bấm "🔑 Đăng nhập / Kích hoạt"\n3. Nhập Email, Mật khẩu của bạn và dán Mã kích hoạt ở trên vào.\n4. Bấm "Kích hoạt" để mở khóa toàn bộ bài học trọn đời!\n\nChúc bạn học tiếng Lào thật hào hứng và hiệu quả! 🇱🇦`
+        }
+      };
+
+      return {
+        ok: true,
+        chat_id: cbChatId,
+        type: "callback_message",
+        callback_query_id: cb.id,
+        extra_dispatches: [customerMessage],
+        text: `✅ [ĐÃ DUYỆT ĐƠN HÀNG ${orderCode}]\n\nĐã cấp mã ${tier.toUpperCase()} cho học viên #u${customerChatId}:\n\`${key}\`\n\nHệ thống đã tự động gửi mã và hướng dẫn kích hoạt vào chat của khách!`
+      };
+    }
+
+    const rejMatch = /^rej_([A-Z0-9]+)_(-?\d+)$/.exec(data);
+    if (rejMatch && cbChatId != null) {
+      const fromId = cb.from ? cb.from.id : null;
+      if (!isAdmin(cbChatId, fromId)) {
+        return {
+          ok: true,
+          type: "callback_answer",
+          callback_query_id: cb.id,
+          text: "⛔ Bạn không có quyền thao tác.",
+          show_alert: true
+        };
+      }
+      const orderCode = rejMatch[1];
+      const customerChatId = rejMatch[2];
+
+      const customerMessage = {
+        method: "sendMessage",
+        payload: {
+          chat_id: customerChatId,
+          text: `⚠️ [THÔNG BÁO GIAO DỊCH]\nAdmin kiểm tra chưa thấy khoản tiền chuyển cho đơn hàng ${orderCode}.\nNếu bạn đã chuyển khoản, vui lòng gửi ảnh chụp sao kê hoặc nhắn /ad <nội dung> để Admin kiểm tra và hỗ trợ ngay nhé!`
+        }
+      };
+
+      return {
+        ok: true,
+        chat_id: cbChatId,
+        type: "callback_message",
+        callback_query_id: cb.id,
+        extra_dispatches: [customerMessage],
+        text: `❌ [ĐÃ TỪ CHỐI ĐƠN HÀNG ${orderCode}]\nĐã gửi thông báo kiểm tra lại cho khách #u${customerChatId}.`
+      };
+    }
+
+    const commandForButton = { cmd_quiz: "/quiz", cmd_upgrade: "/upgrade", cmd_faq: "/faq", cmd_buy: "/buy" }[data];
     if (commandForButton && cbChatId != null) {
       const reply = handleTelegramWebhook(
         { message: { text: commandForButton, chat: { id: cbChatId } } },
@@ -526,23 +766,69 @@ function handleTelegramWebhook(body, store, courseData) {
     inline_keyboard: [
       [
         { text: "📖 Học thử PWA (Web)", url: "https://tuhoctienglao.online/Slide-Tuong-Tac/" },
-        { text: "🎯 Mini-Quiz 1 Phút", callback_data: "cmd_quiz" }
+        { text: "💳 Mua Khóa Học (VietQR)", callback_data: "cmd_buy" }
       ],
       [
-        { text: "🚀 Nâng Cấp PRO (Bù 200k)", callback_data: "cmd_upgrade" },
-        { text: "❓ Hỏi đáp FAQ", callback_data: "cmd_faq" }
+        { text: "🎯 Mini-Quiz 1 Phút", callback_data: "cmd_quiz" },
+        { text: "🚀 Nâng Cấp PRO (Bù 200k)", callback_data: "cmd_upgrade" }
       ],
-      [CONTACT_ADMIN_BUTTON],
+      [
+        { text: "❓ Hỏi đáp FAQ", callback_data: "cmd_faq" },
+        CONTACT_ADMIN_BUTTON
+      ],
       ...(SUPPORT.zaloUrl ? [[{ text: `💬 Zalo Ad (${SUPPORT.zaloPhone})`, url: SUPPORT.zaloUrl }]] : [])
     ]
   };
 
-  // /start or /help
-  if (lower.startsWith("/start") || lower.startsWith("/help")) {
+  // /admin
+  if (lower === "/admin" || lower.startsWith("/admin ")) {
+    const fromId = msg.from ? msg.from.id : null;
+    if (!isAdmin(chatId, fromId)) {
+      return {
+        ok: true,
+        chat_id: chatId,
+        text: "⛔ Lệnh này chỉ dành cho Quản trị viên (Admin)."
+      };
+    }
     return {
       ok: true,
       chat_id: chatId,
-      text: `👋 Chào bạn! Tôi là Bot Trợ Giảng Tự Học Tiếng Lào.\n\nTôi có thể giúp bạn:\n• ❓ Hỏi đáp FAQ & tư vấn khóa học\n• ⏰ /remind - Nhắc lịch học 15 phút hôm nay\n• 🎯 /quiz - Mini-quiz 1 phút kiểm tra từ vựng\n• 🚀 /upgrade - Nhận ưu đãi nâng cấp PRO AI Lab (bù 200k)\n• 🔍 /check <mã_kích_hoạt> - Tra cứu trạng thái bản quyền\n• 📜 /policy - Xem cam kết bảo vệ dữ liệu (Nghị định 13/2023/NĐ-CP)\n• 👤 /ad <nội dung> - Nhắn trực tiếp cho Ad\n\nHãy chọn nhanh tính năng bên dưới hoặc nhắn tin cho tôi nhé!`,
+      text: "🛠️ [MENU QUẢN TRỊ BẢN QUYỀN]\nChào Ad! Vui lòng chọn thao tác bên dưới:",
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🎟️ Tạo 1 Key Standard (299k)", callback_data: "admin_gen_std" }],
+          [{ text: "👑 Tạo 1 Key PRO VIP (499k)", callback_data: "admin_gen_pro" }],
+          [{ text: "📊 Thống kê số lượng Key", callback_data: "admin_stats" }]
+        ]
+      }
+    };
+  }
+
+  // /buy or /mua
+  if (lower.startsWith("/buy") || lower.startsWith("/mua") || lower === "mua" || lower.includes("mua khóa học") || lower.includes("mua gói")) {
+    return {
+      ok: true,
+      chat_id: chatId,
+      text: `🇱🇦 [ĐĂNG KÝ BẢN QUYỀN KHÓA HỌC]\n\nChào bạn! Khóa học gồm 2 gói bản quyền trọn đời:\n• ⭐ GÓI STANDARD (299.000đ): Trọn bộ 8 chương, 840 audio bản xứ, PWA offline, đồng bộ 3 máy.\n• 👑 GÓI PRO AI LAB (499.000đ): Toàn bộ quyền lợi Standard + Phòng Lab phát âm AI (so sánh sóng âm waveform, chấm điểm thanh điệu) + Bot 1-1.\n\n👉 Bấm chọn gói bên dưới để nhận mã VietQR thanh toán tự động:`,
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "🎟️ Mua Gói Standard (299.000đ)", callback_data: "buy_standard" }],
+          [{ text: "👑 Mua Gói PRO VIP (499.000đ)", callback_data: "buy_pro" }],
+          [{ text: "🚀 Nâng Cấp Lên PRO (Bù 200k)", callback_data: "cmd_upgrade" }],
+          [CONTACT_ADMIN_BUTTON]
+        ]
+      }
+    };
+  }
+
+  // /start or /help
+  if (lower.startsWith("/start") || lower.startsWith("/help")) {
+    const fromId = msg.from ? msg.from.id : null;
+    const adminHint = isAdmin(chatId, fromId) ? "\n• 🛠️ /admin - Menu quản trị viên cấp mã" : "";
+    return {
+      ok: true,
+      chat_id: chatId,
+      text: `👋 Chào bạn! Tôi là Bot Trợ Giảng Tự Học Tiếng Lào.\n\nTôi có thể giúp bạn:\n• 💳 /buy - Đặt mua khóa học Standard / Pro qua VietQR\n• ❓ /faq - Hỏi đáp FAQ & tư vấn khóa học\n• ⏰ /remind - Nhắc lịch học 15 phút hôm nay\n• 🎯 /quiz - Mini-quiz 1 phút kiểm tra từ vựng\n• 🚀 /upgrade - Nhận ưu đãi nâng cấp PRO AI Lab (bù 200k)\n• 🔍 /check <mã_kích_hoạt> - Tra cứu trạng thái bản quyền\n• 📜 /policy - Xem cam kết bảo vệ dữ liệu (Nghị định 13/2023/NĐ-CP)\n• 👤 /ad <nội dung> - Nhắn trực tiếp cho Ad${adminHint}\n\nHãy chọn nhanh tính năng bên dưới hoặc nhắn tin cho tôi nhé!`,
       reply_markup: mainKeyboard
     };
   }
@@ -643,8 +929,9 @@ function handleTelegramWebhook(body, store, courseData) {
       text: `💡 [GIẢI ĐÁP FAQ]\n❓ ${matched.question}\n\n${matched.answer}`,
       reply_markup: matched.id === "faq_pricing" ? {
         inline_keyboard: [
-          [{ text: "🎟️ Mua Gói Standard 299k", url: SUPPORT.zaloUrl }],
-          [{ text: "👑 Mua Gói PRO AI Lab 499k", url: SUPPORT.zaloUrl }]
+          [{ text: "🎟️ Mua Gói Standard 299k (VietQR)", callback_data: "buy_standard" }],
+          [{ text: "👑 Mua Gói PRO VIP 499k (VietQR)", callback_data: "buy_pro" }],
+          ...(SUPPORT.zaloUrl ? [[{ text: `💬 Nhắn Zalo Ad (${SUPPORT.zaloPhone})`, url: SUPPORT.zaloUrl }]] : [])
         ]
       } : undefined
     };
