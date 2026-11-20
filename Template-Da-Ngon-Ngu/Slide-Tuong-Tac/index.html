@@ -17,6 +17,7 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
+        <button class="sidebar-close" id="btnCloseSidebar" type="button" title="Đóng mục lục" aria-label="Đóng mục lục">✕</button>
         <h1><span id="brandFlag">🌐</span> <span id="brandTitle">Tự Học Ngoại Ngữ</span></h1>
         <p id="brandSubtitle">Nghe – Nói 30–60 phút/ngày</p>
         <div class="overall-bar">
@@ -31,21 +32,27 @@
       <div class="nav-tools">
         <a href="../" class="btn btn-sm" title="Về trang giới thiệu khóa học" style="text-decoration:none;display:inline-flex;align-items:center;">🏠 Trang chủ</a>
         <button class="btn btn-sm" id="btnShowDict" title="Từ điển sinh tồn &amp; tìm kiếm toàn khóa">🔎 Từ điển</button>
-        <button class="btn btn-sm" id="btnShowPolicy" title="Điều khoản &amp; Chính sách bảo mật (Nghị định 13/2023/NĐ-CP)">📜 Chính sách</button>
-        <button class="btn btn-sm" id="btnToggleTheme" title="Đổi giao diện Sáng / Tối">🌓 Sáng/Tối</button>
-        <button class="btn btn-sm" id="btnExportProgress" title="Xuất tiến trình học">💾 Lưu</button>
+        <button class="btn btn-sm nav-more-btn" id="btnMoreTools" type="button" title="Thêm tùy chọn" aria-label="Thêm tùy chọn" aria-expanded="false">▾</button>
       </div>
 
-      <div class="pwa-tools">
-        <button class="btn btn-sm hidden" id="btnInstallPwa" title="Cài thành ứng dụng độc lập (PWA)">📲 Cài App</button>
-        <button class="btn btn-sm" id="btnCacheOffline" title="Tải audio về máy để học không cần mạng">📥 Lưu Offline</button>
-        <div class="pwa-status hidden" id="pwaStatus"></div>
+      <div class="more-tools hidden" id="moreTools">
+        <div class="nav-tools">
+          <button class="btn btn-sm" id="btnShowPolicy" title="Điều khoản &amp; Chính sách bảo mật (Nghị định 13/2023/NĐ-CP)">📜 Chính sách</button>
+          <button class="btn btn-sm" id="btnToggleTheme" title="Đổi giao diện Sáng / Tối">🌓 Sáng/Tối</button>
+          <button class="btn btn-sm" id="btnExportProgress" title="Xuất tiến trình học">💾 Lưu</button>
+        </div>
+        <div class="pwa-tools">
+          <button class="btn btn-sm hidden" id="btnInstallPwa" title="Cài thành ứng dụng độc lập (PWA)">📲 Cài App</button>
+          <button class="btn btn-sm" id="btnCacheOffline" title="Tải audio về máy để học không cần mạng">📥 Lưu Offline</button>
+          <div class="pwa-status hidden" id="pwaStatus"></div>
+        </div>
       </div>
 
       <div class="account-box hidden" id="accountBox"></div>
 
       <div class="chapter-list" id="chapterNav"></div>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <!-- Main Workspace -->
     <main class="main-area">

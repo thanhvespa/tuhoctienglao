@@ -372,11 +372,7 @@
     clearInterval(activeRec.timerId);
     if (activeRec.watch) {
       clearInterval(activeRec.watch.intervalId);
-      try {
-        activeRec.watch.src.disconnect();
-      } catch (_) {
-        // Ignore disconnect error
-      }
+      activeRec.watch.disconnect();
     }
     try {
       if (activeRec.recorder && activeRec.recorder.state !== "inactive") {
@@ -398,68 +394,99 @@
   /**
    * Watch mic level: drives the live level bars and stops the recording
    * automatically after `silenceMs` of quiet once the learner has spoken.
-   * If nothing is heard at all, it gives up after silenceMs + 3s.
+   *
+   * Robustness notes (iOS Safari especially):
+   * - The analyser is routed to the destination through a muted gain node;
+   *   WebKit may not pull audio through a graph that ends nowhere, which
+   *   left the meter reading pure silence.
+   * - The noise floor is the *quietest* level seen (rolling min), so a
+   *   learner who starts talking immediately does not raise the threshold.
+   * - If the meter never moves (analyser dead), we never auto-stop for
+   *   "no speech"; the learner taps to stop and the recording is kept.
    */
-  function startSilenceWatch(recId, stream, silenceMs, onNoSpeech) {
+  function startSilenceWatch(recId, stream, silenceMs) {
     const actx = getAudioContext();
     if (!actx || !actx.createMediaStreamSource) return null;
     let src;
+    let sink;
+    let analyser;
     try {
       src = actx.createMediaStreamSource(stream);
+      analyser = actx.createAnalyser();
+      analyser.fftSize = 1024;
+      sink = actx.createGain();
+      sink.gain.value = 0;
+      src.connect(analyser);
+      analyser.connect(sink);
+      sink.connect(actx.destination);
     } catch (_) {
       return null;
     }
-    const analyser = actx.createAnalyser();
-    analyser.fftSize = 1024;
-    src.connect(analyser);
     const buf = new Uint8Array(analyser.fftSize);
     const startMs = Date.now();
-    let floorSum = 0;
-    let floorN = 0;
+    let floor = Infinity;
+    let smooth = 0;
     let heardSpeech = false;
     let lastLoudMs = startMs;
+    let meterAlive = false;
     const levels = new Array(15).fill(0);
 
     const intervalId = setInterval(() => {
       if (!activeRec || activeRec.recId !== recId) return;
+      if (actx.state !== "running") actx.resume().catch(() => {});
       analyser.getByteTimeDomainData(buf);
       let sum = 0;
+      let peak = 0;
       for (let i = 0; i < buf.length; i++) {
         const v = (buf[i] - 128) / 128;
         sum += v * v;
+        const av = Math.abs(v);
+        if (av > peak) peak = av;
       }
       const rms = Math.sqrt(sum / buf.length);
+      if (peak > 0) meterAlive = true;
       const now = Date.now();
-      // Calibrate background noise over the first ~400ms
-      if (now - startMs < 400) {
-        floorSum += rms;
-        floorN++;
-      }
-      const floor = floorN ? floorSum / floorN : 0;
-      const thresh = Math.max(0.02, floor * 3);
-      if (rms > thresh) {
+      smooth = smooth * 0.6 + rms * 0.4;
+      if (now - startMs > 150) floor = Math.min(floor, smooth);
+      const base = Number.isFinite(floor) ? floor : 0;
+      // Speech must clearly rise above the room, but never needs to be loud
+      const thresh = Math.min(0.045, Math.max(0.01, base * 2.2 + 0.006));
+      if (smooth > thresh) {
         heardSpeech = true;
         lastLoudMs = now;
-      } else if (rms > thresh * 0.7 && heardSpeech) {
+      } else if (heardSpeech && smooth > thresh * 0.6) {
         lastLoudMs = now;
       }
 
       levels.shift();
-      levels.push(Math.min(1, rms / 0.25));
+      levels.push(Math.min(1, smooth / 0.12));
       document.querySelectorAll(`[data-rec-live="${recId}"] i`).forEach((bar, i) => {
         bar.style.height = `${Math.round(6 + levels[i] * 34)}px`;
       });
 
-      const tooLong = now - startMs > 30000;
-      if ((heardSpeech && now - lastLoudMs > silenceMs) || tooLong) {
+      const elapsed = now - startMs;
+      if (heardSpeech && now - lastLoudMs > silenceMs && elapsed > 1200) {
         stopActiveRecording();
-      } else if (!heardSpeech && now - startMs > silenceMs + 3000) {
-        onNoSpeech();
-        stopActiveRecording();
+      } else if (elapsed > 20000) {
+        stopActiveRecording(); // hard cap
+      } else if (!heardSpeech && meterAlive && elapsed > silenceMs + 5000) {
+        stopActiveRecording(); // nothing said for ~8s: stop, scoring will judge it
       }
     }, 80);
 
-    return { src, intervalId };
+    return {
+      intervalId,
+      src,
+      disconnect() {
+        try {
+          src.disconnect();
+          analyser.disconnect();
+          sink.disconnect();
+        } catch (_) {
+          // Ignore disconnect error
+        }
+      },
+    };
   }
 
   async function toggleRecord(recId, onComplete, onError, opts = {}) {
@@ -489,7 +516,6 @@
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       const chunks = [];
       const startMs = Date.now();
-      let noSpeech = false;
 
       recorder.ondataavailable = (ev) => {
         if (ev.data && ev.data.size > 0) chunks.push(ev.data);
@@ -497,11 +523,6 @@
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const sameView = getViewSignature() === startSig;
-        if (noSpeech) {
-          if (onComplete && sameView) onComplete();
-          if (onError && sameView) onError("Chưa nghe thấy giọng bạn. Chạm 🎤 rồi đọc to, rõ hơn nhé.");
-          return;
-        }
         if (chunks.length) {
           const old = recordings.get(recId);
           if (old && old.url) URL.revokeObjectURL(old.url);
@@ -532,9 +553,7 @@
       activeRec = { recId, recorder, stream, chunks, startMs, timerId, watch: null };
       recorder.start();
       if (opts.autoStopSilenceMs) {
-        activeRec.watch = startSilenceWatch(recId, stream, opts.autoStopSilenceMs, () => {
-          noSpeech = true;
-        });
+        activeRec.watch = startSilenceWatch(recId, stream, opts.autoStopSilenceMs);
       }
       if (onComplete) onComplete();
     } catch (err) {
@@ -560,12 +579,40 @@
     return audioContextInstance;
   }
 
-  function trimSilence(data, threshold = 0.015) {
-    let start = 0;
-    while (start < data.length && Math.abs(data[start]) < threshold) start++;
-    let end = data.length - 1;
-    while (end > start && Math.abs(data[end]) < threshold) end--;
-    return data.subarray(Math.max(0, start), Math.min(data.length, end + 1));
+  /**
+   * Trim leading/trailing silence relative to the loudest part of the clip
+   * (frame RMS), then normalise the peak. A fixed absolute threshold failed
+   * on quiet phone recordings (everything trimmed away) and on clips with a
+   * click at the end (the 3s auto-stop tail was kept).
+   */
+  function trimSilence(data) {
+    const frame = 512;
+    const n = Math.floor(data.length / frame);
+    if (n < 2) return new Float32Array(0);
+    const rms = new Float32Array(n);
+    let maxR = 0;
+    for (let f = 0; f < n; f++) {
+      let sum = 0;
+      for (let i = f * frame; i < (f + 1) * frame; i++) sum += data[i] * data[i];
+      rms[f] = Math.sqrt(sum / frame);
+      if (rms[f] > maxR) maxR = rms[f];
+    }
+    if (maxR < 0.005) return new Float32Array(0); // nothing above room noise
+    const thr = Math.max(maxR * 0.12, 0.0015);
+    let first = 0;
+    while (first < n && rms[first] < thr) first++;
+    let last = n - 1;
+    while (last > first && rms[last] < thr) last--;
+    const start = Math.max(0, (first - 1) * frame);
+    const end = Math.min(data.length, (last + 2) * frame);
+    const out = data.slice(start, end);
+    let peak = 0;
+    for (let i = 0; i < out.length; i++) peak = Math.max(peak, Math.abs(out[i]));
+    if (peak > 0) {
+      const gain = 0.9 / peak;
+      for (let i = 0; i < out.length; i++) out[i] *= gain;
+    }
+    return out;
   }
 
   function getEnergyEnvelope(data, frames = 50) {
@@ -659,27 +706,55 @@
     const refPitch = getPitchContour(trimmedRef, sr, 30);
     const userPitch = getPitchContour(trimmedUser, sr, 30);
 
-    let slopeMatches = 0;
-    let totalTransitions = 0;
-    for (let i = 1; i < 30; i++) {
-      const r1 = refPitch[i - 1], r2 = refPitch[i];
-      const u1 = userPitch[i - 1], u2 = userPitch[i];
-      if (r1 > 0 && r2 > 0 && u1 > 0 && u2 > 0) {
-        const rSlope = r2 - r1;
-        const uSlope = u2 - u1;
-        totalTransitions++;
-        if ((rSlope >= 5 && uSlope >= 5) || (rSlope <= -5 && uSlope <= -5) || (Math.abs(rSlope) < 5 && Math.abs(uSlope) < 5)) {
-          slopeMatches++;
-        } else if (Math.abs(rSlope - uSlope) < 25) {
-          slopeMatches += 0.5;
-        }
+    // Compare pitch *shape* in semitones relative to each speaker's own median,
+    // so a male voice can match a female reference. Octave-jump frames are
+    // clamped so one tracker error cannot sink the score.
+    const toSemitones = (pitches) => {
+      const voiced = Array.from(pitches).filter((f) => f > 0).sort((x, y) => x - y);
+      if (voiced.length < 4) return null;
+      const med = voiced[Math.floor(voiced.length / 2)];
+      const st = Array.from(pitches, (f) => (f > 0 ? 12 * Math.log2(f / med) : null));
+      // 3-point median filter to drop single-frame spikes
+      return st.map((v, i) => {
+        if (v === null) return null;
+        const win = [st[i - 1], v, st[i + 1]].filter((x) => x !== null && x !== undefined).sort((x, y) => x - y);
+        return win[Math.floor(win.length / 2)];
+      });
+    };
+    const slopeOf = (pts) => {
+      const n = pts.length;
+      const mx = pts.reduce((acc, p) => acc + p[0], 0) / n;
+      const my = pts.reduce((acc, p) => acc + p[1], 0) / n;
+      let num = 0;
+      let den = 0;
+      for (const [x, y] of pts) {
+        num += (x - mx) * (y - my);
+        den += (x - mx) * (x - mx);
+      }
+      return den > 0 ? num / den : 0; // semitones per whole clip
+    };
+    const refSt = toSemitones(refPitch);
+    const userSt = toSemitones(userPitch);
+    let tone = 60;
+    if (refSt && userSt) {
+      const pairs = [];
+      for (let i = 0; i < 30; i++) {
+        if (refSt[i] !== null && userSt[i] !== null) pairs.push([i / 29, refSt[i], userSt[i]]);
+      }
+      if (pairs.length >= 5) {
+        const meanDiff =
+          pairs.reduce((acc, p) => acc + Math.min(6, Math.abs(p[1] - p[2])), 0) / pairs.length;
+        const refSlope = slopeOf(pairs.map((p) => [p[0], p[1]]));
+        const userSlope = slopeOf(pairs.map((p) => [p[0], p[2]]));
+        let shape = Math.max(0, 1 - meanDiff / 5);
+        // Rising vs falling where the reference clearly moves: a different tone
+        if (Math.abs(refSlope) > 2 && Math.sign(refSlope) !== Math.sign(userSlope)) shape *= 0.5;
+        tone = Math.round(40 + 60 * shape);
       }
     }
-    const toneRatio = totalTransitions > 0 ? (slopeMatches / totalTransitions) : 0.75;
-    const tone = Math.round(Math.min(100, Math.max(45, (toneRatio * 55) + 45)));
 
-    // Overall weighted score: Lao is tonal (Tone 45%, Clarity 30%, Rhythm 25%)
-    const overall = Math.round(tone * 0.45 + clarity * 0.30 + rhythm * 0.25);
+    // Overall weighted score: Lao is tonal, so tone dominates (Tone 60%, Clarity 20%, Rhythm 20%)
+    const overall = Math.round(tone * 0.6 + clarity * 0.2 + rhythm * 0.2);
 
     let msg = "";
     if (overall >= 90) {
@@ -761,16 +836,17 @@
       saved.bestScore = Math.max(saved.bestScore || 0, result.overall);
     } catch (err) {
       console.warn("AI Assessment fallback:", err);
+      // Never invent a score: the card shows "Chưa chấm được" and asks for a retry
       saved.assessment = {
-        overall: 82,
-        tone: 84,
-        rhythm: 80,
-        clarity: 82,
-        msg: "Đã phân tích bản thu. Thanh điệu của bạn khá tốt, tiếp tục phát huy nhé!",
-        refEnv: new Float32Array(50).fill(0.65),
-        userEnv: new Float32Array(50).fill(0.55),
+        failed: true,
+        overall: 0,
+        tone: 0,
+        rhythm: 0,
+        clarity: 0,
+        msg: "Chưa chấm được bản thu này. Hãy thử đọc lại.",
+        refEnv: new Float32Array(50),
+        userEnv: new Float32Array(50),
       };
-      saved.bestScore = Math.max(saved.bestScore || 0, 82);
     } finally {
       saved.assessing = false;
       renderApp();
@@ -890,6 +966,30 @@
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg>';
   const ICON_STOP = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor"/></svg>';
   const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
+  const ICON_RETRY =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+  const PASS_SCORE = 80;
+
+  function launchConfetti() {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const colors = ["#146c53", "#f5a524", "#e0533d", "#3bb08f", "#4f7dff", "#ffd23f"];
+    const layer = document.createElement("div");
+    layer.className = "confetti-layer";
+    for (let i = 0; i < 70; i++) {
+      const piece = document.createElement("i");
+      const dx = (Math.random() - 0.5) * 2;
+      piece.style.left = `${50 + dx * 8}%`;
+      piece.style.background = colors[i % colors.length];
+      piece.style.setProperty("--dx", `${dx * 48}vw`);
+      piece.style.setProperty("--dy", `${-30 - Math.random() * 45}vh`);
+      piece.style.setProperty("--rot", `${(Math.random() - 0.5) * 1080}deg`);
+      piece.style.animationDelay = `${Math.random() * 0.15}s`;
+      if (i % 3 === 0) piece.style.borderRadius = "50%";
+      layer.appendChild(piece);
+    }
+    document.body.appendChild(layer);
+    setTimeout(() => layer.remove(), 2200);
+  }
 
   function renderCardPracticeHtml(recId, audioId) {
     const isRecording = activeRec && activeRec.recId === recId;
@@ -915,39 +1015,25 @@
       resultHtml = `<div class="cp-result cp-result-wait">⏳ Đang chấm điểm phát âm…</div>`;
     } else if (saved && saved.assessment) {
       const a = saved.assessment;
-      const level = a.overall >= 85 ? "great" : a.overall >= 70 ? "good" : "low";
-      const title = a.overall >= 85 ? "Xuất sắc! 🎉" : a.overall >= 70 ? "Khá tốt! 👍" : "Cần luyện thêm 💪";
-      const r = 30;
-      const circ = 2 * Math.PI * r;
-      const dash = (circ * Math.max(0, Math.min(100, a.overall))) / 100;
-      // Drop the leading emoji and short "Khá tốt!"-style exclamation (the title already says it)
-      const msg = String(a.msg || "")
-        .replace(/^[^\p{L}]+/u, "")
-        .replace(/^[^.!?]{0,20}!\s*/u, "");
-      resultHtml = `
-        <button type="button" class="cp-result cp-${level}" data-cp-detail="${escapeHtml(recId)}" aria-expanded="${saved.showDetail ? "true" : "false"}">
-          <span class="cp-ring">
-            <svg viewBox="0 0 72 72" aria-hidden="true">
-              <circle cx="36" cy="36" r="${r}" class="cp-ring-bg"/>
-              <circle cx="36" cy="36" r="${r}" class="cp-ring-fg" stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" transform="rotate(-90 36 36)"/>
-            </svg>
-            <b>${a.overall}%</b>
-          </span>
-          <span class="cp-result-text">
-            <span class="cp-result-title">${title}</span>
-            <span class="cp-result-msg">${escapeHtml(msg)}</span>
-            <span class="cp-chips"><span>Thanh ${a.tone}%</span><span>Nhịp ${a.rhythm}%</span><span>Rõ ${a.clarity}%</span></span>
-          </span>
-          <span class="cp-chevron">${saved.showDetail ? "▲" : "▼"}</span>
-        </button>
-        <div class="cp-detail ${saved.showDetail ? "" : "hidden"}" data-cp-detail-box="${escapeHtml(recId)}">
-          <canvas class="waveform-canvas" data-waveform-canvas="${escapeHtml(recId)}"></canvas>
-          <div class="waveform-legend">
-            <span class="legend-ref">■ Sóng âm mẫu (bản xứ)</span>
-            <span class="legend-user">■ Sóng âm giọng bạn</span>
-          </div>
-          <div class="cp-best">🏆 Kỷ lục thẻ này: ${saved.bestScore || a.overall}%</div>
-        </div>`;
+      if (a.failed) {
+        resultHtml = `
+          <div class="cp-verdict cp-verdict-retry">
+            <span class="cp-verdict-text"><b>Chưa chấm được</b><small>Bấm 🔊 nghe mẫu rồi đọc lại to, rõ nhé.</small></span>
+            <button type="button" class="cp-retry" data-cp-retry="${escapeHtml(recId)}" aria-label="Đọc lại">${ICON_RETRY}</button>
+          </div>`;
+      } else if (a.overall >= PASS_SCORE) {
+        resultHtml = `
+          <div class="cp-verdict cp-verdict-pass" role="status">
+            <span class="cp-verdict-badge">✓</span>
+            <span class="cp-verdict-text"><b>ĐẠT!</b><small>Phát âm chuẩn rồi, sang thẻ tiếp nhé 🎉</small></span>
+          </div>`;
+      } else {
+        resultHtml = `
+          <div class="cp-verdict cp-verdict-retry" role="status">
+            <span class="cp-verdict-text"><b>Chưa đạt</b><small>Nghe mẫu 🔊 rồi đọc lại nhé</small></span>
+            <button type="button" class="cp-retry" data-cp-retry="${escapeHtml(recId)}" aria-label="Đọc lại">${ICON_RETRY}</button>
+          </div>`;
+      }
     } else if (saved && !isPro) {
       resultHtml = `
         <div class="cp-result cp-result-lock">
@@ -960,7 +1046,7 @@
       ? `
         <div class="cp-acts cp-acts-3">
           <div class="cp-act"><button class="cp-btn cp-spk cp-sm" id="btnSlideAudio" aria-label="Nghe mẫu">${ICON_SPEAKER}</button><span>Mẫu</span></div>
-          <div class="cp-act"><button class="cp-btn cp-mic cp-md" data-cp-mic="${escapeHtml(recId)}" aria-label="Thu lại">${ICON_MIC}</button><span>Thử lại</span></div>
+          <div class="cp-act"><button class="cp-btn cp-mic cp-md" data-cp-mic="${escapeHtml(recId)}" aria-label="Đọc lại">${ICON_MIC}</button><span>Đọc lại</span></div>
           <div class="cp-act"><button class="cp-btn cp-me cp-sm" data-cp-me="${escapeHtml(recId)}" aria-label="Nghe giọng bạn">${ICON_PLAY}</button><span>Giọng bạn</span></div>
         </div>`
       : `
@@ -987,17 +1073,24 @@
       }
     };
 
-    const micBtn = container.querySelector(`[data-cp-mic="${recId}"]`);
-    if (micBtn) {
-      micBtn.onclick = () => {
-        toggleRecord(recId, onRefresh, showErr, {
-          autoStopSilenceMs: 3000,
-          onRecorded: () => {
-            if (authState.tier === "pro" && audioId) assessPronunciation(recId, audioId, ttsText);
-            else onRefresh();
-          },
-        });
-      };
+    const startRecording = () => {
+      toggleRecord(recId, onRefresh, showErr, {
+        autoStopSilenceMs: 3000,
+        onRecorded: () => {
+          if (authState.tier === "pro" && audioId) assessPronunciation(recId, audioId, ttsText);
+          else onRefresh();
+        },
+      });
+    };
+    container.querySelectorAll(`[data-cp-mic="${recId}"], [data-cp-retry="${recId}"]`).forEach((btn) => {
+      btn.onclick = startRecording;
+    });
+
+    // Celebrate a pass once per recording
+    const saved = recordings.get(recId);
+    if (saved && saved.assessment && !saved.assessment.failed && saved.assessment.overall >= PASS_SCORE && !saved.celebrated) {
+      saved.celebrated = true;
+      launchConfetti();
     }
 
     const meBtn = container.querySelector(`[data-cp-me="${recId}"]`);
@@ -1015,28 +1108,6 @@
     const proBtn = container.querySelector("[data-cp-pro]");
     if (proBtn) proBtn.onclick = openProModal;
 
-    const detailBtn = container.querySelector(`[data-cp-detail="${recId}"]`);
-    if (detailBtn) {
-      detailBtn.onclick = () => {
-        const saved = recordings.get(recId);
-        if (!saved) return;
-        saved.showDetail = !saved.showDetail;
-        const box = container.querySelector(`[data-cp-detail-box="${recId}"]`);
-        if (box) box.classList.toggle("hidden", !saved.showDetail);
-        detailBtn.setAttribute("aria-expanded", saved.showDetail ? "true" : "false");
-        const chev = detailBtn.querySelector(".cp-chevron");
-        if (chev) chev.textContent = saved.showDetail ? "▲" : "▼";
-        drawCardWaveform(container, recId);
-      };
-    }
-    drawCardWaveform(container, recId);
-  }
-
-  function drawCardWaveform(container, recId) {
-    const saved = recordings.get(recId);
-    const canvas = container.querySelector(`[data-waveform-canvas="${recId}"]`);
-    if (!saved || !saved.assessment || !saved.showDetail || !canvas) return;
-    requestAnimationFrame(() => drawWaveform(canvas, saved.assessment.refEnv, saved.assessment.userEnv));
   }
 
   function bindRecorderEvents(container, onRefresh) {
@@ -2664,6 +2735,7 @@
     };
   }
 
+  let accountExpanded = false;
   function renderAccountBox() {
     const box = document.getElementById("accountBox");
     if (!box) return;
@@ -2684,15 +2756,25 @@
         ? "Đã mở khóa trọn gói PRO VIP (Kèm AI Lab)"
         : "Đã mở khóa trọn gói Standard (8 Chương trọn đời)";
       box.innerHTML = `
-        <div class="acc-email">✅ ${escapeHtml(u.email)} ${tierBadge}</div>
-        <div style="color:var(--text-muted);">${tierDesc} (${u.active_devices || 1}/${u.max_devices || 3} thiết bị)</div>
-        <div class="acc-actions">
-          ${!isPro ? `<button class="btn btn-sm btn-gold" id="btnUpgradePro" type="button" title="Nhập mã LAO-PRO để nâng cấp">👑 Lên PRO</button>` : ""}
-          <button class="btn btn-sm" id="btnSyncNow" type="button">☁️ Đồng bộ</button>
-          <button class="btn btn-sm" id="btnLogout" type="button">Đăng xuất</button>
-          <button class="btn btn-sm" id="btnLogoutAll" type="button" title="Thu hồi phiên trên mọi thiết bị">🔒 Thoát hết</button>
+        <button class="acc-head" id="btnAccToggle" type="button" aria-expanded="${accountExpanded ? "true" : "false"}" title="Tài khoản">
+          <span class="acc-email">${escapeHtml(u.email)}</span>
+          ${tierBadge}
+          <span class="acc-caret">${accountExpanded ? "▴" : "▾"}</span>
+        </button>
+        <div class="acc-more ${accountExpanded ? "" : "hidden"}">
+          <div style="color:var(--text-muted);">${tierDesc} (${u.active_devices || 1}/${u.max_devices || 3} thiết bị)</div>
+          <div class="acc-actions">
+            ${!isPro ? `<button class="btn btn-sm btn-gold" id="btnUpgradePro" type="button" title="Nhập mã LAO-PRO để nâng cấp">👑 Lên PRO</button>` : ""}
+            <button class="btn btn-sm" id="btnSyncNow" type="button">☁️ Đồng bộ</button>
+            <button class="btn btn-sm" id="btnLogout" type="button">Đăng xuất</button>
+            <button class="btn btn-sm" id="btnLogoutAll" type="button" title="Thu hồi phiên trên mọi thiết bị">🔒 Thoát hết</button>
+          </div>
         </div>
       `;
+      document.getElementById("btnAccToggle").onclick = () => {
+        accountExpanded = !accountExpanded;
+        renderAccountBox();
+      };
       if (!isPro) {
         const upBtn = document.getElementById("btnUpgradePro");
         if (upBtn) upBtn.onclick = () => openAuthModal("activate");
@@ -3236,9 +3318,23 @@
       });
     }
 
-    document.getElementById("btnMobileMenu").onclick = () => {
-      document.getElementById("sidebar").classList.toggle("open");
-    };
+    const sidebarEl = document.getElementById("sidebar");
+    const closeSidebar = () => sidebarEl.classList.remove("open");
+    document.getElementById("btnMobileMenu").onclick = () => sidebarEl.classList.toggle("open");
+    const closeSidebarBtn = document.getElementById("btnCloseSidebar");
+    if (closeSidebarBtn) closeSidebarBtn.onclick = closeSidebar;
+    const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+    if (sidebarBackdrop) sidebarBackdrop.onclick = closeSidebar;
+
+    const moreToolsBtn = document.getElementById("btnMoreTools");
+    if (moreToolsBtn) {
+      moreToolsBtn.onclick = () => {
+        const panel = document.getElementById("moreTools");
+        const open = panel.classList.toggle("hidden") === false;
+        moreToolsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        moreToolsBtn.textContent = open ? "▴" : "▾";
+      };
+    }
 
     document.getElementById("btnShowDict").onclick = () => {
       stopAllPlayback();
