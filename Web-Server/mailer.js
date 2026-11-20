@@ -317,7 +317,7 @@ function templateWelcomeLead({ email, name }) {
       <li><strong>Cài app vào màn hình chính:</strong> Trên điện thoại, chọn <em>Thêm vào màn hình chính (Add to Home Screen)</em> để mở học offline mọi lúc.</li>
     </ul>
 
-    <p style="margin-top: 24px;">Nếu cần hỗ trợ kỹ thuật hoặc tư vấn lộ trình học, bạn có thể nhắn tin trực tiếp với Trợ giảng qua Zalo: <a href="https://zalo.me/tuhoctienglao" style="color: #0284c7; font-weight: bold;">zalo.me/tuhoctienglao</a>.</p>
+    <p style="margin-top: 24px;">Nếu cần hỗ trợ kỹ thuật hoặc tư vấn lộ trình học, bạn có thể nhắn tin trực tiếp với Trợ giảng qua Zalo: <a href="https://zalo.me/0944888929" style="color: #0284c7; font-weight: bold;">Zalo 0944888929</a>.</p>
     
     <p>Chúc bạn có những giờ học thật hứng khởi!<br><strong>Ban Giảng Thuật Tự Học Tiếng Lào</strong></p>
   `;
@@ -399,7 +399,7 @@ function templateOfferStandard({ email, name }) {
       <div style="text-decoration: line-through; color: #94a3b8; font-size: 14px;">Giá gốc: 590.000đ</div>
       <div style="font-size: 28px; font-weight: 800; color: #d97706; margin: 6px 0;">299.000đ</div>
       <p style="margin: 0 0 14px 0; font-size: 13px; color: #475569;">Thanh toán 1 lần • Sở hữu trọn đời • Tiết kiệm 50%</p>
-      <a href="https://zalo.me/tuhoctienglao?text=Tôi muốn mua Gói Standard 299k cho email ${escapeHtml(encodeURIComponent(email))}" class="btn">
+      <a href="https://zalo.me/0944888929" class="btn">
         🚀 Nhận Mã Kích Hoạt Gói Standard Ngay
       </a>
     </div>
@@ -447,7 +447,7 @@ function templateUpsellPro({ email, name, licenseKey }) {
       <h3 style="margin: 10px 0 6px 0; color: #92400e;">Nâng cấp lên GÓI PRO AI LAB (499.000đ)</h3>
       <p style="margin: 0; color: #475569;">Bạn đã sở hữu Gói Standard, nên <strong>CHỈ CẦN BÙ 200.000đ</strong> chênh lệch!</p>
       <div style="font-size: 26px; font-weight: 800; color: #d97706; margin: 12px 0;">+200.000đ</div>
-      <a href="https://zalo.me/tuhoctienglao?text=Tôi muốn nâng cấp lên PRO AI Lab bù 200k cho email ${escapeHtml(encodeURIComponent(email))}" class="btn">
+      <a href="https://zalo.me/0944888929" class="btn">
         🚀 Nâng Cấp PRO AI Lab Ngay
       </a>
       <p style="margin: 10px 0 0 0; font-size: 12px; color: #64748b;">Mã tài khoản của bạn: <code>${escapeHtml(licenseKey || email)}</code></p>
@@ -506,7 +506,7 @@ function templateLicenseKey({ email, name, tier, licenseKey }) {
     </div>
 
     <p style="font-size: 13px; color: #64748b;">
-      Bạn cần hỗ trợ kích hoạt hoặc cài đặt offline? Nhắn tin ngay cho Trợ giảng qua Zalo: <a href="https://zalo.me/tuhoctienglao" style="color: #0284c7;">zalo.me/tuhoctienglao</a>.
+      Bạn cần hỗ trợ kích hoạt hoặc cài đặt offline? Nhắn tin ngay cho Trợ giảng qua Zalo: <a href="https://zalo.me/0944888929" style="color: #0284c7;">Zalo 0944888929</a>.
     </p>
   `;
 

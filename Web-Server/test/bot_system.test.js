@@ -203,6 +203,25 @@ test("VietQR: generates valid QR URL schema", () => {
   assert.ok(qrUrl.includes("addInfo=UPGRADE%20PRO%20HOCVIEN"));
 });
 
+test("VietQR: uses the configured receiving account and never a placeholder", () => {
+  const qrUrl = botService.generateVietQrUrl({ addInfo: "Nâng cấp PRO hocvien@gmail.com" });
+  assert.ok(qrUrl.startsWith("https://img.vietqr.io/image/970412-888686863979-compact2.png?"));
+  assert.ok(qrUrl.includes("accountName=NGUYEN%20DO%20THANH"));
+  assert.ok(qrUrl.includes("amount=200000"));
+  // Diacritics and "@" are stripped, note capped at 25 chars
+  const note = new URL(qrUrl).searchParams.get("addInfo");
+  assert.match(note, /^[A-Z0-9 ]{1,25}$/);
+  assert.ok(note.startsWith("NANG CAP PRO"));
+
+  // No account configured -> no QR at all
+  assert.equal(botService.generateVietQrUrl({ bankBin: "", accountNo: "" }), "");
+
+  const offer = botService.generateUpsellOffer({});
+  assert.match(offer.text, /PVcomBank/);
+  assert.match(offer.text, /888686863979/);
+  assert.equal(offer.reply_markup.inline_keyboard[0][0].url, offer.qr_url);
+});
+
 test("Scheduler: runs drip cycle and creates campaign logs safely", async () => {
   const summary = await cronScheduler.processDripCycle();
   assert.ok(typeof summary.sent === "number");
@@ -212,4 +231,74 @@ test("Scheduler: runs drip cycle and creates campaign logs safely", async () => 
   const logs = JSON.parse(logsRaw);
   assert.ok(Array.isArray(logs.logs));
   assert.ok(logs.logs.length >= 1);
+});
+
+test("Support: Zalo links point to the configured personal number", () => {
+  const start = botService.handleTelegramWebhook({ message: { text: "/start", chat: { id: 5 } } }, null, null);
+  const urls = start.reply_markup.inline_keyboard.flat().map((b) => b.url).filter(Boolean);
+  assert.ok(urls.includes("https://zalo.me/0944888929"));
+  assert.ok(!JSON.stringify(start).includes("zalo.me/tuhoctienglao"));
+  const buttons = start.reply_markup.inline_keyboard.flat().map((b) => b.callback_data);
+  assert.ok(buttons.includes("cmd_contact_admin"));
+});
+
+test("Telegram: /ad relays learner <-> admin when configured", () => {
+  const prevAdmin = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  const prevToken = process.env.TELEGRAM_BOT_TOKEN;
+  try {
+    // Not configured: falls back to Zalo info, nothing relayed
+    delete process.env.TELEGRAM_ADMIN_CHAT_ID;
+    const noRelay = botService.handleTelegramWebhook(
+      { message: { message_id: 1, text: "/ad hello", chat: { id: 111, type: "private" } } }, null, null);
+    assert.equal(noRelay.relay, undefined);
+    assert.match(noRelay.text, /0944888929/);
+
+    process.env.TELEGRAM_ADMIN_CHAT_ID = "999";
+    process.env.TELEGRAM_BOT_TOKEN = "test-token";
+
+    // Button press shows instructions
+    const cb = botService.handleTelegramWebhook(
+      { callback_query: { id: "cb1", data: "cmd_contact_admin", message: { chat: { id: 111 } } } }, null, null);
+    assert.equal(cb.type, "callback_message");
+    assert.match(cb.text, /\/ad/);
+
+    // Learner text -> admin
+    const sent = botService.handleTelegramWebhook({
+      message: { message_id: 2, text: "/ad Mình đã chuyển khoản", chat: { id: 111, type: "private" }, from: { first_name: "An", username: "an_lao" } }
+    }, null, null);
+    assert.equal(sent.type, "relay_to_admin");
+    assert.equal(sent.relay.method, "sendMessage");
+    assert.equal(sent.relay.payload.chat_id, "999");
+    assert.match(sent.relay.payload.text, /#u111/);
+    assert.match(sent.relay.payload.text, /Mình đã chuyển khoản/);
+    assert.equal(botService.toTelegramWebhookReply(sent).chat_id, 111);
+
+    // Learner photo -> copied to admin with tag
+    const photo = botService.handleTelegramWebhook({
+      message: { message_id: 3, photo: [{ file_id: "x" }], chat: { id: 111, type: "private" } }
+    }, null, null);
+    assert.equal(photo.relay.method, "copyMessage");
+    assert.match(photo.relay.payload.caption, /#u111/);
+
+    // Admin replies to the relayed message -> goes to the learner
+    const reply = botService.handleTelegramWebhook({
+      message: { message_id: 4, text: "Đã nâng cấp xong!", chat: { id: 999, type: "private" }, reply_to_message: { text: sent.relay.payload.text } }
+    }, null, null);
+    const wh = botService.toTelegramWebhookReply(reply);
+    assert.equal(wh.method, "sendMessage");
+    assert.equal(wh.chat_id, "111");
+    assert.match(wh.text, /Đã nâng cấp xong!/);
+
+    // Admin's normal messages still use the bot normally
+    const adminNormal = botService.handleTelegramWebhook({ message: { text: "/myid", chat: { id: 999 } } }, null, null);
+    assert.match(adminNormal.text, /999/);
+
+    // Group chats are never relayed
+    const group = botService.handleTelegramWebhook(
+      { message: { message_id: 5, text: "/ad hi", chat: { id: -100, type: "group" } } }, null, null);
+    assert.equal(group.relay, undefined);
+  } finally {
+    if (prevAdmin === undefined) delete process.env.TELEGRAM_ADMIN_CHAT_ID; else process.env.TELEGRAM_ADMIN_CHAT_ID = prevAdmin;
+    if (prevToken === undefined) delete process.env.TELEGRAM_BOT_TOKEN; else process.env.TELEGRAM_BOT_TOKEN = prevToken;
+  }
 });

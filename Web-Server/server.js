@@ -982,6 +982,16 @@ function createCourseApp(options = {}) {
             })
             .catch((err) => console.warn("[telegram] answerCallbackQuery failed:", err.message));
         }
+        // Learner -> admin relay (/ad or a photo): the webhook reply acknowledges
+        // the learner, so the copy to the admin's chat is a separate call.
+        if (result && result.relay && process.env.TELEGRAM_BOT_TOKEN) {
+          botService
+            .dispatchTelegramOutbound(process.env.TELEGRAM_BOT_TOKEN, result.relay.method, result.relay.payload)
+            .then((r) => {
+              if (r && r.ok === false) console.warn("[telegram] relay to admin rejected:", r.description || r.error);
+            })
+            .catch((err) => console.warn("[telegram] relay to admin failed:", err.message));
+        }
         return sendJson(res, 200, botService.toTelegramWebhookReply(result) || {});
       }
 

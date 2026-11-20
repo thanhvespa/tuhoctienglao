@@ -13,7 +13,83 @@
 "use strict";
 
 const crypto = require("crypto");
+const fs = require("fs");
 const https = require("https");
+const path = require("path");
+
+/**
+ * Bank account that receives payments (shown in VietQR codes). Read from the
+ * `payment` section of course.config.json; env vars override it per deploy.
+ */
+function readCourseConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, "..", "course.config.json"), "utf8")) || {};
+  } catch (_) {
+    return {}; // Config missing: fall back to env vars only
+  }
+}
+const COURSE_CONFIG = readCourseConfig();
+
+function loadPaymentConfig() {
+  const cfg = COURSE_CONFIG.payment || {};
+  return {
+    bankBin: String(process.env.PAYMENT_BANK_BIN || cfg.bank_bin || ""),
+    bankName: String(process.env.PAYMENT_BANK_NAME || cfg.bank_name || ""),
+    accountNo: String(process.env.PAYMENT_ACCOUNT_NO || cfg.account_no || ""),
+    accountName: String(process.env.PAYMENT_ACCOUNT_NAME || cfg.account_name || ""),
+    upgradeProAmount: Number(cfg.upgrade_pro_amount) || 200000,
+  };
+}
+const PAYMENT = loadPaymentConfig();
+
+/**
+ * Support contact. Zalo is a personal number for now (no Zalo OA yet); a
+ * personal zalo.me link cannot prefill a message, so no ?text= is added.
+ */
+const SUPPORT = (() => {
+  const cfg = COURSE_CONFIG.support || {};
+  const phone = String(process.env.SUPPORT_ZALO_PHONE || cfg.zalo_phone || "").replace(/[^0-9]/g, "");
+  const zaloUrl = String(process.env.SUPPORT_ZALO_URL || cfg.zalo_url || (phone ? `https://zalo.me/${phone}` : ""));
+  return { zaloPhone: phone, zaloUrl };
+})();
+
+/**
+ * Telegram chat id of the admin's own (personal) Telegram account. Messages
+ * sent to the bot with /ad are relayed there, and the admin answers by
+ * replying to the relayed message. Read on each call so tests can set it.
+ */
+function getAdminChatId() {
+  const id = String(process.env.TELEGRAM_ADMIN_CHAT_ID || "").trim();
+  return /^-?\d{1,20}$/.test(id) ? id : "";
+}
+
+// Per-chat relay limit so one user cannot flood the admin's phone.
+const RELAY_LIMIT = 8;
+const RELAY_WINDOW_MS = 10 * 60 * 1000;
+const relayLog = new Map();
+function allowRelay(chatId) {
+  const now = Date.now();
+  const key = String(chatId);
+  const recent = (relayLog.get(key) || []).filter((t) => now - t < RELAY_WINDOW_MS);
+  if (recent.length >= RELAY_LIMIT) {
+    relayLog.set(key, recent);
+    return false;
+  }
+  recent.push(now);
+  relayLog.set(key, recent);
+  if (relayLog.size > 5000) relayLog.delete(relayLog.keys().next().value);
+  return true;
+}
+
+// Tag placed in every relayed message; the admin's reply is routed by it.
+const RELAY_TAG_RE = /#u(-?\d{1,20})\b/;
+
+function describeSender(from, chatId) {
+  const f = from || {};
+  const name = [f.first_name, f.last_name].filter(Boolean).join(" ").slice(0, 80) || "Học viên";
+  const user = f.username ? ` @${String(f.username).slice(0, 40)}` : "";
+  return `${name}${user} #u${chatId}`;
+}
 
 const FAQ_DATABASE = [
   {
@@ -234,38 +310,146 @@ function checkLicenseInfo(query, store) {
 }
 
 /**
- * Generate VietQR quick link for upgrade / purchase
+ * Generate a VietQR image link. Returns "" when no receiving account is
+ * configured, so a placeholder account can never be shown to a payer.
+ * Transfer notes are reduced to A-Z/0-9/space (max 25 chars): many banks
+ * strip or reject other characters such as "@".
  */
-function generateVietQrUrl({ amount = 200000, addInfo = "NANG CAP PRO", bankBin = "970422", accountNo = "0123456789" }) {
-  const encodedInfo = encodeURIComponent(addInfo);
-  return `https://img.vietqr.io/image/${bankBin}-${accountNo}-compact2.png?amount=${amount}&addInfo=${encodedInfo}`;
+function generateVietQrUrl({
+  amount = PAYMENT.upgradeProAmount,
+  addInfo = "NANG CAP PRO",
+  bankBin = PAYMENT.bankBin,
+  accountNo = PAYMENT.accountNo,
+  accountName = PAYMENT.accountName
+} = {}) {
+  if (!/^\d{6}$/.test(String(bankBin)) || !/^\d{6,19}$/.test(String(accountNo))) return "";
+  const note = String(addInfo || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/gi, "D")
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 25);
+  const params = new URLSearchParams({ amount: String(Math.round(Number(amount) || 0)), addInfo: note });
+  if (accountName) params.set("accountName", accountName);
+  return `https://img.vietqr.io/image/${bankBin}-${accountNo}-compact2.png?${params.toString().replace(/\+/g, "%20")}`;
 }
 
 /**
  * Generate formatted Upsell Message
  */
 function generateUpsellOffer({ email = "", currentTier = "standard" } = {}) {
-  const qrUrl = generateVietQrUrl({
-    amount: 200000,
-    addInfo: `UPGRADE PRO ${email || "USER"}`.trim()
-  });
+  const qrUrl = generateVietQrUrl({ addInfo: "NANG CAP PRO" });
+  const bankInfo = qrUrl
+    ? `\n\n🏦 Thông tin chuyển khoản:\n• Ngân hàng: ${PAYMENT.bankName}\n• Số TK: ${PAYMENT.accountNo}\n• Chủ TK: ${PAYMENT.accountName}\n• Số tiền: ${PAYMENT.upgradeProAmount.toLocaleString("vi-VN")}đ\n• Nội dung: NANG CAP PRO + email tài khoản học\n\nChuyển khoản xong, bạn nhắn email + ảnh chụp giao dịch cho Ad để được nâng cấp ngay.`
+    : "";
 
   return {
     title: "👑 ĐẶC QUYỀN NÂNG CẤP LÊN GÓI PRO AI LAB",
     current_tier: currentTier,
     upgrade_price: 200000,
     qr_url: qrUrl,
-    text: `👑 [NÂNG CẤP GÓI PRO AI LAB - CHỈ BÙ 200.000đ]\n\nBạn đã sở hữu Gói Standard. Để nói tiếng Lào chuẩn thanh điệu như người Vientiane bản xứ, Phòng Luyện Nói AI Lab là công cụ đắc lực nhất:\n\n• 🌊 Biểu đồ sóng âm (Waveform): So sánh trực tiếp khẩu hình & độ cao giọng với người bản xứ.\n• 🎯 Chấm điểm % độ chuẩn xác thanh điệu (chuẩn 6 thanh tiếng Lào).\n• 🤖 Trợ lý AI đồng hành phân tích lỗi phát âm.\n\n💰 Chi phí nâng cấp: Chỉ bù đúng 200.000đ (Giá gốc: 499.000đ)!\n\n👉 Chuyển khoản VietQR hoặc nhắn tin với Ad để kích hoạt ngay: https://zalo.me/tuhoctienglao?text=Toi%20muon%20nang%20cap%20PRO%20AI%20Lab%20bu%20200k`,
+    text: `👑 [NÂNG CẤP GÓI PRO AI LAB - CHỈ BÙ 200.000đ]\n\nBạn đã sở hữu Gói Standard. Để nói tiếng Lào chuẩn thanh điệu như người Vientiane bản xứ, Phòng Luyện Nói AI Lab là công cụ đắc lực nhất:\n\n• 🌊 Biểu đồ sóng âm (Waveform): So sánh trực tiếp khẩu hình & độ cao giọng với người bản xứ.\n• 🎯 Chấm điểm % độ chuẩn xác thanh điệu (chuẩn 6 thanh tiếng Lào).\n• 🤖 Trợ lý AI đồng hành phân tích lỗi phát âm.\n\n💰 Chi phí nâng cấp: Chỉ bù đúng 200.000đ (Giá gốc: 499.000đ)!\n\n👉 Quét mã VietQR bên dưới để chuyển khoản, hoặc nhắn tin với Ad để được hỗ trợ.${bankInfo}`,
     reply_markup: {
       inline_keyboard: [
+        ...(qrUrl ? [[{ text: "💳 Mở mã VietQR chuyển khoản 200k", url: qrUrl }]] : []),
         [
-          { text: "🚀 Nâng Cấp Bù 200k (Zalo)", url: "https://zalo.me/tuhoctienglao?text=Toi%20muon%20nang%20cap%20PRO%20AI%20Lab%20bu%20200k" }
+          { text: "🚀 Nâng Cấp Bù 200k (Zalo)", url: SUPPORT.zaloUrl }
         ],
         [
           { text: "📖 Xem Demo AI Lab", url: "https://tuhoctienglao.online/Slide-Tuong-Tac/" }
         ]
       ]
     }
+  };
+}
+
+/**
+ * Relay to the admin works only when both the admin's chat id and the bot
+ * token are set (the relayed copy is an outbound Bot API call).
+ */
+function isAdminRelayEnabled() {
+  return !!(getAdminChatId() && process.env.TELEGRAM_BOT_TOKEN);
+}
+
+const CONTACT_ADMIN_BUTTON = { text: "👤 Nhắn trực tiếp cho Ad", callback_data: "cmd_contact_admin" };
+
+function contactAdminInfo(chatId) {
+  const zaloRow = SUPPORT.zaloUrl ? [[{ text: `💬 Nhắn Zalo Ad (${SUPPORT.zaloPhone})`, url: SUPPORT.zaloUrl }]] : [];
+  const text = isAdminRelayEnabled()
+    ? `👤 [NHẮN TRỰC TIẾP CHO AD]\n\nGõ /ad kèm nội dung, ví dụ:\n/ad Mình đã chuyển khoản nâng cấp PRO, email abc@gmail.com\n\n📷 Ảnh chụp giao dịch: gửi thẳng ảnh vào đây, bot sẽ chuyển cho Ad.\n\nAd sẽ trả lời bạn ngay trong khung chat này.`
+    : `👤 [LIÊN HỆ AD]\n\nBạn nhắn Zalo cho Ad${SUPPORT.zaloPhone ? ` qua số ${SUPPORT.zaloPhone}` : ""} để được hỗ trợ nhé.`;
+  return { ok: true, chat_id: chatId, text, reply_markup: zaloRow.length ? { inline_keyboard: zaloRow } : undefined };
+}
+
+/**
+ * Admin <-> learner relay. Returns a result, or null when the message is not
+ * part of the relay and should go through the normal bot flow.
+ */
+function handleAdminRelay(message, text) {
+  const chatId = message.chat ? message.chat.id : null;
+  if (chatId == null) return null;
+  const adminChatId = getAdminChatId();
+  const isPrivate = !message.chat.type || message.chat.type === "private";
+
+  // Admin replies to a relayed message -> deliver to the learner.
+  if (adminChatId && String(chatId) === adminChatId && message.reply_to_message) {
+    const r = message.reply_to_message;
+    const tag = RELAY_TAG_RE.exec(String(r.text || "") + " " + String(r.caption || ""));
+    if (!tag) return null;
+    const userChatId = tag[1];
+    const webhook = text
+      ? { method: "sendMessage", chat_id: userChatId, text: `💬 Ad trả lời:\n\n${text}`.slice(0, 4096), disable_web_page_preview: true }
+      : { method: "copyMessage", chat_id: userChatId, from_chat_id: chatId, message_id: message.message_id };
+    return { ok: true, type: "admin_reply", user_chat_id: userChatId, webhook_reply: webhook };
+  }
+
+  if (!isPrivate || String(chatId) === adminChatId) return null;
+
+  const isAdCommand = /^\/ad(@\w+)?(\s|$)/i.test(text);
+  const isMedia = !text && !!(message.photo || message.document);
+  if (!isAdCommand && !isMedia) return null;
+
+  if (!isAdminRelayEnabled()) return contactAdminInfo(chatId);
+
+  const content = isAdCommand ? text.replace(/^\/ad(@\w+)?/i, "").trim() : "";
+  if (isAdCommand && !content) return contactAdminInfo(chatId);
+
+  if (!allowRelay(chatId)) {
+    return {
+      ok: true,
+      chat_id: chatId,
+      text: `⏳ Bạn đã gửi khá nhiều tin cho Ad, vui lòng chờ Ad trả lời nhé.${SUPPORT.zaloUrl ? ` Việc gấp: Zalo ${SUPPORT.zaloPhone}.` : ""}`
+    };
+  }
+
+  const sender = describeSender(message.from, chatId);
+  const relay = isMedia
+    ? {
+        method: "copyMessage",
+        payload: {
+          chat_id: adminChatId,
+          from_chat_id: chatId,
+          message_id: message.message_id,
+          caption: `📩 ${sender}\n${String(message.caption || "").slice(0, 800)}\n\n↩️ Trả lời (Reply) tin này để nhắn lại học viên.`.slice(0, 1024)
+        }
+      }
+    : {
+        method: "sendMessage",
+        payload: {
+          chat_id: adminChatId,
+          text: `📩 ${sender}\n\n${content}\n\n↩️ Trả lời (Reply) tin này để nhắn lại học viên.`.slice(0, 4096),
+          disable_web_page_preview: true
+        }
+      };
+  return {
+    ok: true,
+    chat_id: chatId,
+    type: "relay_to_admin",
+    relay,
+    text: isMedia ? "✅ Đã chuyển ảnh/tệp cho Ad. Ad sẽ trả lời bạn tại đây sớm nhất." : "✅ Đã gửi tin nhắn cho Ad. Ad sẽ trả lời bạn tại đây sớm nhất."
   };
 }
 
@@ -299,6 +483,10 @@ function handleTelegramWebhook(body, store, courseData) {
     }
 
     // Menu buttons behave exactly like the matching text command.
+    if (data === "cmd_contact_admin" && cbChatId != null) {
+      return { ...contactAdminInfo(cbChatId), type: "callback_message", callback_query_id: cb.id };
+    }
+
     const commandForButton = { cmd_quiz: "/quiz", cmd_upgrade: "/upgrade", cmd_faq: "/faq" }[data];
     if (commandForButton && cbChatId != null) {
       const reply = handleTelegramWebhook(
@@ -313,14 +501,25 @@ function handleTelegramWebhook(body, store, courseData) {
   }
 
   // 2. Handle Text Messages
-  const message = body && (body.message || body.edited_message);
-  if (!message || !message.text) {
+  const message = body && body.message;
+  const edited = body && body.edited_message;
+  if (message) {
+    const relayResult = handleAdminRelay(message, String(message.text || "").trim());
+    if (relayResult) return relayResult;
+  }
+  const msg = message || edited;
+  if (!msg || !msg.text) {
     return { ok: true, text: "Không nhận diện được nội dung tin nhắn." };
   }
 
-  const text = message.text.trim();
+  const text = msg.text.trim();
   const lower = text.toLowerCase();
-  const chatId = message.chat ? message.chat.id : null;
+  const chatId = msg.chat ? msg.chat.id : null;
+
+  // /myid: lets the admin find the chat id for TELEGRAM_ADMIN_CHAT_ID
+  if (/^\/myid(@\w+)?$/i.test(text)) {
+    return { ok: true, chat_id: chatId, text: `🆔 Chat ID của bạn: ${chatId}` };
+  }
 
   // Telegram Inline Keyboards for Main Menu
   const mainKeyboard = {
@@ -333,9 +532,8 @@ function handleTelegramWebhook(body, store, courseData) {
         { text: "🚀 Nâng Cấp PRO (Bù 200k)", callback_data: "cmd_upgrade" },
         { text: "❓ Hỏi đáp FAQ", callback_data: "cmd_faq" }
       ],
-      [
-        { text: "💬 Trợ Giảng Zalo (24/7)", url: "https://zalo.me/tuhoctienglao" }
-      ]
+      [CONTACT_ADMIN_BUTTON],
+      ...(SUPPORT.zaloUrl ? [[{ text: `💬 Zalo Ad (${SUPPORT.zaloPhone})`, url: SUPPORT.zaloUrl }]] : [])
     ]
   };
 
@@ -344,7 +542,7 @@ function handleTelegramWebhook(body, store, courseData) {
     return {
       ok: true,
       chat_id: chatId,
-      text: `👋 Chào bạn! Tôi là Bot Trợ Giảng Tự Học Tiếng Lào.\n\nTôi có thể giúp bạn:\n• ❓ Hỏi đáp FAQ & tư vấn khóa học\n• ⏰ /remind - Nhắc lịch học 15 phút hôm nay\n• 🎯 /quiz - Mini-quiz 1 phút kiểm tra từ vựng\n• 🚀 /upgrade - Nhận ưu đãi nâng cấp PRO AI Lab (bù 200k)\n• 🔍 /check <mã_kích_hoạt> - Tra cứu trạng thái bản quyền\n• 📜 /policy - Xem cam kết bảo vệ dữ liệu (Nghị định 13/2023/NĐ-CP)\n\nHãy chọn nhanh tính năng bên dưới hoặc nhắn tin cho tôi nhé!`,
+      text: `👋 Chào bạn! Tôi là Bot Trợ Giảng Tự Học Tiếng Lào.\n\nTôi có thể giúp bạn:\n• ❓ Hỏi đáp FAQ & tư vấn khóa học\n• ⏰ /remind - Nhắc lịch học 15 phút hôm nay\n• 🎯 /quiz - Mini-quiz 1 phút kiểm tra từ vựng\n• 🚀 /upgrade - Nhận ưu đãi nâng cấp PRO AI Lab (bù 200k)\n• 🔍 /check <mã_kích_hoạt> - Tra cứu trạng thái bản quyền\n• 📜 /policy - Xem cam kết bảo vệ dữ liệu (Nghị định 13/2023/NĐ-CP)\n• 👤 /ad <nội dung> - Nhắn trực tiếp cho Ad\n\nHãy chọn nhanh tính năng bên dưới hoặc nhắn tin cho tôi nhé!`,
       reply_markup: mainKeyboard
     };
   }
@@ -404,7 +602,7 @@ function handleTelegramWebhook(body, store, courseData) {
       ok: true,
       chat_id: chatId,
       text: upsell.text,
-      reply_markup: upsell.reply_markup
+      reply_markup: { inline_keyboard: [...upsell.reply_markup.inline_keyboard, [CONTACT_ADMIN_BUTTON]] }
     };
   }
 
@@ -415,7 +613,7 @@ function handleTelegramWebhook(body, store, courseData) {
     const info = checkLicenseInfo(q, store);
     const buttons = [];
     if (info.found && info.tier === "standard") {
-      buttons.push([{ text: "👑 Nâng cấp lên PRO AI Lab (Bù 200k)", url: "https://zalo.me/tuhoctienglao?text=Toi%20muon%20nang%20cap%20PRO%20bu%20200k" }]);
+      buttons.push([{ text: "👑 Nâng cấp lên PRO AI Lab (Bù 200k)", url: SUPPORT.zaloUrl }]);
     }
     return {
       ok: true,
@@ -445,8 +643,8 @@ function handleTelegramWebhook(body, store, courseData) {
       text: `💡 [GIẢI ĐÁP FAQ]\n❓ ${matched.question}\n\n${matched.answer}`,
       reply_markup: matched.id === "faq_pricing" ? {
         inline_keyboard: [
-          [{ text: "🎟️ Mua Gói Standard 299k", url: "https://zalo.me/tuhoctienglao?text=Mua%20Standard%20299k" }],
-          [{ text: "👑 Mua Gói PRO AI Lab 499k", url: "https://zalo.me/tuhoctienglao?text=Mua%20PRO%20499k" }]
+          [{ text: "🎟️ Mua Gói Standard 299k", url: SUPPORT.zaloUrl }],
+          [{ text: "👑 Mua Gói PRO AI Lab 499k", url: SUPPORT.zaloUrl }]
         ]
       } : undefined
     };
@@ -456,7 +654,7 @@ function handleTelegramWebhook(body, store, courseData) {
   return {
     ok: true,
     chat_id: chatId,
-    text: `Cảm ơn bạn đã nhắn tin! Tôi đã ghi nhận câu hỏi: "${text}".\n\nBạn có thể gõ:\n• "giá" hoặc "gói" để xem bảng giá 2 gói Standard & Pro.\n• /upgrade để nhận ưu đãi nâng cấp PRO AI Lab (bù 200k).\n• "cách học" để tìm hiểu phương pháp Pimsleur 15 phút.\n• /quiz để làm câu hỏi nhỏ ôn bài.\n• Hoặc nhắn trực tiếp với đội ngũ hỗ trợ qua Zalo: https://zalo.me/tuhoctienglao`,
+    text: `Cảm ơn bạn đã nhắn tin! Tôi đã ghi nhận câu hỏi: "${text}".\n\nBạn có thể gõ:\n• "giá" hoặc "gói" để xem bảng giá 2 gói Standard & Pro.\n• /upgrade để nhận ưu đãi nâng cấp PRO AI Lab (bù 200k).\n• "cách học" để tìm hiểu phương pháp Pimsleur 15 phút.\n• /quiz để làm câu hỏi nhỏ ôn bài.\n• /ad <nội dung> để nhắn trực tiếp cho Ad.\n• Hoặc nhắn trực tiếp với đội ngũ hỗ trợ qua Zalo ${SUPPORT.zaloPhone}: ${SUPPORT.zaloUrl}`,
     reply_markup: mainKeyboard
   };
 }
@@ -469,6 +667,7 @@ function handleTelegramWebhook(body, store, courseData) {
  */
 function toTelegramWebhookReply(result) {
   if (!result) return null;
+  if (result.webhook_reply) return result.webhook_reply;
   if (result.type === "callback_answer") {
     if (!result.callback_query_id) return null;
     return {

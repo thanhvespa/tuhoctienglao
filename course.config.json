@@ -23,7 +23,11 @@
     "forbidden_script_name": "Thai",
     "google_translate_sl": "lo",
     "google_translate_tl": "vi",
-    "alphabet_headers": ["chữ lào", "âm đọc", "từ quen đã học"]
+    "alphabet_headers": [
+      "chữ lào",
+      "âm đọc",
+      "từ quen đã học"
+    ]
   },
   "tts": {
     "provider": "edge",
@@ -43,8 +47,34 @@
     "license_file": "assets/fonts/OFL.txt"
   },
   "dialogue_roles": {
-    "female": ["An", "Linh", "Chị", "Cô bán", "Lễ tân", "Dược sĩ", "Phục vụ", "Thu ngân", "A", "Việt"],
-    "male": ["Boun", "Minh", "Som", "Anh Lào", "Bác Lào", "Bạn Lào", "Tài xế", "Bác sĩ", "Người bán", "Nhân viên", "Khách", "Bạn", "B", "Lào"]
+    "female": [
+      "An",
+      "Linh",
+      "Chị",
+      "Cô bán",
+      "Lễ tân",
+      "Dược sĩ",
+      "Phục vụ",
+      "Thu ngân",
+      "A",
+      "Việt"
+    ],
+    "male": [
+      "Boun",
+      "Minh",
+      "Som",
+      "Anh Lào",
+      "Bác Lào",
+      "Bạn Lào",
+      "Tài xế",
+      "Bác sĩ",
+      "Người bán",
+      "Nhân viên",
+      "Khách",
+      "Bạn",
+      "B",
+      "Lào"
+    ]
   },
   "chapters": {
     "1": "Âm Thanh Lào & Chào Hỏi Cơ Bản",
@@ -99,10 +129,24 @@
   },
   "web": {
     "require_auth": true,
-    "free_chapters": [1],
+    "free_chapters": [
+      1
+    ],
     "free_dict_limit": 15,
     "max_devices_per_user": 3,
     "price_note": "Mở khóa trọn bộ 8 chương (27 bài, 424 từ, 838 audio offline & 8 đề kiểm tra)",
     "contact_hint": "Học thử Chương 1 miễn phí. Nhập Email + Mật khẩu + Mã kích hoạt để mở toàn bộ khóa học."
+  },
+  "payment": {
+    "bank_bin": "970412",
+    "bank_name": "PVcomBank",
+    "account_no": "888686863979",
+    "account_name": "NGUYEN DO THANH",
+    "upgrade_pro_amount": 200000
+  },
+  "support": {
+    "_note": "Zalo cá nhân tạm thời (chưa có Zalo OA). Khi có OA, đổi zalo_url sang https://zalo.me/<oa_id>.",
+    "zalo_phone": "0944888929",
+    "zalo_url": "https://zalo.me/0944888929"
   }
 }

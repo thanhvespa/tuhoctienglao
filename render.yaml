@@ -36,6 +36,10 @@ services:
         generateValue: true
       - key: TELEGRAM_BOT_TOKEN
         sync: false
+      # Chat id of the admin's personal Telegram (send /myid to the bot to get
+      # it). Enables the "Nhắn trực tiếp cho Ad" relay via /ad.
+      - key: TELEGRAM_ADMIN_CHAT_ID
+        sync: false
       # Zalo OA webhook signature verification (from the Zalo developer console).
       - key: ZALO_APP_ID
         sync: false
